@@ -1,5 +1,8 @@
 use bevy::{ecs::schedule::SystemDescriptor, prelude::*};
 
+/// Generate a tree of startup systems that can be used by [`AddStartupTree`].
+///
+/// TODO
 pub use bevy_startup_tree_macros::startup_tree;
 
 const STAGE_LABELS: [&str; 128] = bevy_startup_tree_macros::generage_stage_labels!(128);

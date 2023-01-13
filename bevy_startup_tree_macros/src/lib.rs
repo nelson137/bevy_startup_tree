@@ -8,10 +8,6 @@ mod tree;
 
 use tree::StartupTree;
 
-/// Generate a tree of startup systems that can be used by
-/// [`AddStartupTree`](bevy_startup_tree::AddStartupTree).
-///
-/// TODO
 #[proc_macro]
 pub fn startup_tree(input: TokenStream) -> TokenStream {
     let tree: StartupTree = parse_macro_input!(input);
