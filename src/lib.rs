@@ -4,7 +4,7 @@ pub use bevy_startup_tree_macros::startup_tree;
 
 const STAGE_LABELS: [&str; 128] = bevy_startup_tree_macros::generage_stage_labels!(128);
 
-/// An extension trait for [`bevy::app::App`].
+/// An extension trait for [`bevy::app::App`](bevy::app::App).
 pub trait AddStartupTree {
     /// Add a dependency tree of startup systems. See [`startup_tree`] for how to build a tree.
     ///
