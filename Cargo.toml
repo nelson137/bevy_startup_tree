@@ -9,6 +9,9 @@ license = "MIT OR Apache-2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[example]]
+name = "usage"
+
 [dependencies]
 bevy = { version = "0.9.1", default-features = false }
 bevy_startup_tree_macros = { version = "0.1.0", path = "./bevy_startup_tree_macros" }
