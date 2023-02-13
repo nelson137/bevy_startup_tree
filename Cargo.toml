@@ -18,3 +18,6 @@ bevy_app = "0.9.1"
 bevy_ecs = "0.9.1"
 bevy_startup_tree_macros = { version = "0.1.0", path = "./bevy_startup_tree_macros" }
 rand = "0.8.5"
+
+[dev-dependencies]
+bevy = { version = "0.9.1", default-features = false }

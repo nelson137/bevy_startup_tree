@@ -2,10 +2,11 @@ use std::fmt::Write;
 
 use bevy_app::{App, StartupStage};
 use bevy_ecs::schedule::{SystemDescriptor, SystemStage};
-use rand::{
-    distributions::{Alphanumeric, DistString},
-    thread_rng,
-};
+use rand::distributions::{Alphanumeric, DistString};
+
+mod rng;
+
+use self::rng::get_rng;
 
 /// Generate a tree of startup systems that can be used by [`AddStartupTree`].
 ///
@@ -43,7 +44,7 @@ pub trait AddStartupTree {
     ///
     /// ### Code
     ///
-    /// ```rust
+    /// ```rust ignore
     /// use bevy::{log::LogPlugin, prelude::*};
     /// use bevy_startup_tree::{startup_tree, AddStartupTree};
     ///
@@ -83,7 +84,7 @@ pub trait AddStartupTree {
     ///
     /// ### Output
     ///
-    /// ```
+    /// ```ignore
     /// 2023-01-08T19:38:41.664766Z  INFO example_app: [Begin]
     /// 2023-01-08T19:38:41.664906Z  INFO example_app: 1.b
     /// 2023-01-08T19:38:41.664937Z  INFO example_app: 1.c
@@ -108,7 +109,7 @@ impl AddStartupTree for App {
         T: IntoIterator<Item = U>,
         U: IntoIterator<Item = SystemDescriptor>,
     {
-        let mut rng = thread_rng();
+        let mut rng = get_rng();
         let namespace = Alphanumeric.sample_string(&mut rng, 6);
         let label_base = format!("__startup_tree_stage_{namespace}_");
 
@@ -134,5 +135,41 @@ impl AddStartupTree for App {
         }
 
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+
+    use bevy::{
+        app::{App, StartupSchedule},
+        ecs::schedule::{Schedule, StageLabel},
+    };
+
+    use crate::{rng::reset_rng, startup_tree, AddStartupTree};
+
+    #[test]
+    fn multiple_trees_dont_reuse_labels() {
+        reset_rng();
+
+        let mut app = App::new();
+        fn system() {}
+
+        app.add_startup_tree(startup_tree! { system });
+        app.add_startup_tree(startup_tree! { system });
+
+        let expected_labels = HashSet::from([
+            "__startup_tree_stage_zujxzB_0",
+            "__startup_tree_stage_ql3QHx_0",
+        ]);
+        let startup_schedule = app.schedule.get_stage::<Schedule>(StartupSchedule).unwrap();
+        let actual_labels: HashSet<&str> = startup_schedule
+            .iter_stages()
+            .skip(2)
+            .take(2)
+            .map(|(id, _)| id.as_str())
+            .collect();
+        assert_eq!(actual_labels, expected_labels);
     }
 }

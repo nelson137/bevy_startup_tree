@@ -493,6 +493,7 @@ dependencies = [
 name = "bevy_startup_tree"
 version = "0.1.0"
 dependencies = [
+ "bevy",
  "bevy_app",
  "bevy_ecs",
  "bevy_startup_tree_macros",
