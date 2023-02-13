@@ -1,12 +1,16 @@
+use std::fmt::Write;
+
 use bevy_app::{App, StartupStage};
 use bevy_ecs::schedule::{SystemDescriptor, SystemStage};
+use rand::{
+    distributions::{Alphanumeric, DistString},
+    thread_rng,
+};
 
 /// Generate a tree of startup systems that can be used by [`AddStartupTree`].
 ///
 /// TODO
 pub use bevy_startup_tree_macros::startup_tree;
-
-const STAGE_LABELS: [&str; 128] = bevy_startup_tree_macros::generage_stage_labels!(128);
 
 /// An extension trait for [`bevy::app::App`](bevy::app::App).
 pub trait AddStartupTree {
@@ -104,8 +108,16 @@ impl AddStartupTree for App {
         T: IntoIterator<Item = U>,
         U: IntoIterator<Item = SystemDescriptor>,
     {
+        let mut rng = thread_rng();
+        let namespace = Alphanumeric.sample_string(&mut rng, 6);
+        let label_base = format!("__startup_tree_stage_{namespace}_");
+
+        let mut last_label: &'static str = "";
+
         for (i, level) in startup_tree.into_iter().enumerate() {
-            let label = STAGE_LABELS[i];
+            let mut label = label_base.clone();
+            write!(label, "{i}").unwrap();
+            let label: &'static str = Box::leak(label.into_boxed_str());
 
             let mut stage = SystemStage::parallel();
             for system in level {
@@ -115,8 +127,10 @@ impl AddStartupTree for App {
             if i == 0 {
                 self.add_startup_stage_after(StartupStage::Startup, label, stage);
             } else {
-                self.add_startup_stage_after(STAGE_LABELS[i - 1], label, stage);
+                self.add_startup_stage_after(last_label, label, stage);
             }
+
+            last_label = label;
         }
 
         self
