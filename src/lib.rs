@@ -1,4 +1,5 @@
-use bevy::{ecs::schedule::SystemDescriptor, prelude::*};
+use bevy_app::{App, StartupStage};
+use bevy_ecs::schedule::{SystemDescriptor, SystemStage};
 
 /// Generate a tree of startup systems that can be used by [`AddStartupTree`].
 ///

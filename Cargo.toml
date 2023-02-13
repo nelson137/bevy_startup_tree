@@ -14,5 +14,6 @@ exclude = ["examples/usage"]
 members = ["examples/usage"]
 
 [dependencies]
-bevy = { version = "0.9.1", default-features = false }
+bevy_app = "0.9.1"
+bevy_ecs = "0.9.1"
 bevy_startup_tree_macros = { version = "0.1.0", path = "./bevy_startup_tree_macros" }
