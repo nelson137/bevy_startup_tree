@@ -149,12 +149,77 @@ mod tests {
 
     use crate::{rng::reset_rng, startup_tree, AddStartupTree};
 
+    fn get_app_startup_tree_labels(app: &App) -> impl Iterator<Item = &'static str> + '_ {
+        let startup_schedule = app.schedule.get_stage::<Schedule>(StartupSchedule).unwrap();
+        let n_labels = startup_schedule.iter_stages().count();
+        // By default, the startup schedule contains the stages `PreStartup`, `Startup`, and
+        // `PostStartup`. Startup tree stages are inserted after `Startup` meaning the first 2
+        // labels can be skipped. Then, we can take the amount of startup tree labels `n - 3` where
+        // `n` is the total number of labels.
+        let n_startup_tree_stages = n_labels - 3;
+        startup_schedule
+            .iter_stages()
+            .skip(2)
+            .take(n_startup_tree_stages)
+            .map(|(id, _)| id.as_str())
+    }
+
+    fn system() {}
+
+    #[test]
+    fn adds_sequential_labels() {
+        reset_rng();
+
+        let mut app = App::new();
+
+        app.add_startup_tree(startup_tree! {
+            system => {
+                system => system
+            }
+        });
+
+        let expected_labels = HashSet::from([
+            "__startup_tree_stage_zujxzB_0",
+            "__startup_tree_stage_zujxzB_1",
+            "__startup_tree_stage_zujxzB_2",
+        ]);
+        let actual_labels = HashSet::from_iter(get_app_startup_tree_labels(&app));
+        assert_eq!(actual_labels, expected_labels);
+    }
+
+    #[test]
+    fn adds_correct_labels_for_complex_tree() {
+        reset_rng();
+
+        let mut app = App::new();
+
+        app.add_startup_tree(startup_tree! {
+            system,
+            system => {
+                system => system,
+                system => {
+                    system,
+                    system => system,
+                }
+            },
+            system,
+        });
+
+        let expected_labels = HashSet::from([
+            "__startup_tree_stage_zujxzB_0",
+            "__startup_tree_stage_zujxzB_1",
+            "__startup_tree_stage_zujxzB_2",
+            "__startup_tree_stage_zujxzB_3",
+        ]);
+        let actual_labels = HashSet::from_iter(get_app_startup_tree_labels(&app));
+        assert_eq!(actual_labels, expected_labels);
+    }
+
     #[test]
     fn multiple_trees_dont_reuse_labels() {
         reset_rng();
 
         let mut app = App::new();
-        fn system() {}
 
         app.add_startup_tree(startup_tree! { system });
         app.add_startup_tree(startup_tree! { system });
@@ -163,13 +228,7 @@ mod tests {
             "__startup_tree_stage_zujxzB_0",
             "__startup_tree_stage_ql3QHx_0",
         ]);
-        let startup_schedule = app.schedule.get_stage::<Schedule>(StartupSchedule).unwrap();
-        let actual_labels: HashSet<&str> = startup_schedule
-            .iter_stages()
-            .skip(2)
-            .take(2)
-            .map(|(id, _)| id.as_str())
-            .collect();
+        let actual_labels = HashSet::from_iter(get_app_startup_tree_labels(&app));
         assert_eq!(actual_labels, expected_labels);
     }
 }
