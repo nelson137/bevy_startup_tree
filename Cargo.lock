@@ -491,7 +491,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_startup_tree"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "bevy",
  "bevy_app",
@@ -504,7 +504,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_startup_tree_macros"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "proc-macro2",
  "quote",

@@ -1,6 +1,6 @@
 [package]
 name = "bevy_startup_tree"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "A bevy extension for inserting  startup system dependency graphs into the app"
 documentation = "https://docs.rs/bevy_startup_tree"
@@ -16,7 +16,7 @@ members = ["examples/usage"]
 [dependencies]
 bevy_app = "0.9.1"
 bevy_ecs = "0.9.1"
-bevy_startup_tree_macros = { version = "0.1.0", path = "./bevy_startup_tree_macros" }
+bevy_startup_tree_macros = { version = "0.1.2", path = "./bevy_startup_tree_macros" }
 rand = "0.8.5"
 
 [dev-dependencies]
