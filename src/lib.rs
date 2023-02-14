@@ -231,4 +231,90 @@ mod tests {
         let actual_labels = HashSet::from_iter(get_app_startup_tree_labels(&app));
         assert_eq!(actual_labels, expected_labels);
     }
+
+    mod e2e {
+        use std::sync::Mutex;
+
+        use bevy::{
+            app::{App, StartupStage},
+            core::CorePlugin,
+        };
+        use lazy_static::lazy_static;
+
+        use crate::{rng::reset_rng, startup_tree, AddStartupTree};
+
+        lazy_static! {
+            static ref TEST_EVENTS: Mutex<Vec<TestEvent>> = Mutex::new(Vec::with_capacity(16));
+        }
+
+        #[derive(Debug, PartialEq, Eq)]
+        enum TestEvent {
+            Begin,
+            One,
+            Two,
+            Three,
+            End,
+        }
+
+        macro_rules! test_systems {
+            ($($name:ident => $event:path);+ $(;)?) => {
+                $( fn $name() { TEST_EVENTS.lock().unwrap().push($event); } )+
+            };
+        }
+
+        test_systems! {
+            begin => TestEvent::Begin;
+            sys_1_a => TestEvent::One;
+            sys_1_b => TestEvent::One;
+            sys_1_c => TestEvent::One;
+            sys_1_d => TestEvent::One;
+            sys_2_a => TestEvent::Two;
+            sys_2_b => TestEvent::Two;
+            sys_2_c => TestEvent::Two;
+            sys_2_d => TestEvent::Two;
+            sys_3_a => TestEvent::Three;
+            end => TestEvent::End;
+        }
+
+        #[test]
+        fn end_to_end_test() {
+            reset_rng();
+
+            let mut app = App::new();
+            app.add_plugin(CorePlugin::default());
+            app.add_startup_system(begin);
+            app.add_startup_tree(startup_tree! {
+                sys_1_a => {
+                    sys_2_a,
+                    sys_2_b,
+                },
+                sys_1_b => {
+                    sys_2_c,
+                    sys_2_d => sys_3_a,
+                },
+                sys_1_c,
+                sys_1_d,
+            });
+            app.add_startup_system_to_stage(StartupStage::PostStartup, end);
+
+            app.run();
+
+            assert_eq!(
+                *TEST_EVENTS.lock().unwrap(),
+                vec![
+                    TestEvent::Begin,
+                    TestEvent::One,
+                    TestEvent::One,
+                    TestEvent::One,
+                    TestEvent::One,
+                    TestEvent::Two,
+                    TestEvent::Two,
+                    TestEvent::Two,
+                    TestEvent::Two,
+                    TestEvent::Three,
+                    TestEvent::End
+                ]
+            );
+        }
+    }
 }
