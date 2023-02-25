@@ -224,10 +224,8 @@ mod tests {
         app.add_startup_tree(startup_tree! { system });
         app.add_startup_tree(startup_tree! { system });
 
-        let expected_labels = HashSet::from([
-            "__startup_tree_stage_zujxzB_0",
-            "__startup_tree_stage_ql3QHx_0",
-        ]);
+        let expected_labels =
+            HashSet::from(["__startup_tree_stage_zujxzB_0", "__startup_tree_stage_ql3QHx_0"]);
         let actual_labels = HashSet::from_iter(get_app_startup_tree_labels(&app));
         assert_eq!(actual_labels, expected_labels);
     }
