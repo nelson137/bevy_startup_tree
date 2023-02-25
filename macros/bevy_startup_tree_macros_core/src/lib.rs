@@ -10,7 +10,7 @@ use syn::{
     Error, ExprPath, Macro, MacroDelimiter, Path, PathSegment, Result, Token,
 };
 
-pub(super) struct StartupTree(Tree);
+pub struct StartupTree(Tree);
 
 impl Parse for StartupTree {
     fn parse(input: ParseStream) -> Result<Self> {

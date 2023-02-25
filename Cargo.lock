@@ -506,6 +506,15 @@ dependencies = [
 name = "bevy_startup_tree_macros"
 version = "0.1.2"
 dependencies = [
+ "bevy_startup_tree_macros_core",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "bevy_startup_tree_macros_core"
+version = "0.1.2"
+dependencies = [
  "proc-macro2",
  "quote",
  "syn",
