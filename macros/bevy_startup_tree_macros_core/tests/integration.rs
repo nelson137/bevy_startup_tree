@@ -55,6 +55,44 @@ fn parse_complex_tree() -> syn::Result<()> {
 }
 
 #[test]
+fn tokenize_tree() {
+    let tree: StartupTree = parse2(quote! {
+        s1a,
+        s1b => {
+            s2a => s3a,
+            s2b => {
+                s3b,
+                s3c,
+            },
+        },
+    })
+    .expect("failed to arrange for test");
+
+    let expected = quote! {
+        vec![
+            ::std::vec![
+                ::bevy::prelude::IntoSystemDescriptor::into_descriptor(s1a),
+                ::bevy::prelude::IntoSystemDescriptor::into_descriptor(s1b)
+            ],
+            ::std::vec![
+                ::bevy::prelude::IntoSystemDescriptor::into_descriptor(s2a),
+                ::bevy::prelude::IntoSystemDescriptor::into_descriptor(s2b)
+            ],
+            ::std::vec![
+                ::bevy::prelude::IntoSystemDescriptor::into_descriptor(s3a),
+                ::bevy::prelude::IntoSystemDescriptor::into_descriptor(s3b),
+                ::bevy::prelude::IntoSystemDescriptor::into_descriptor(s3c)
+            ]
+        ]
+    }
+    .to_string();
+
+    let actual = quote! { #tree }.to_string();
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
 fn calculate_tree_depth() {
     #[derive(Debug, PartialEq)]
     enum D {
