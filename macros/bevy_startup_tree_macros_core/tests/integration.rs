@@ -4,7 +4,7 @@ use syn::parse2;
 
 mod utils;
 
-use self::utils::path;
+use self::utils::{assert_err, assert_ok, path};
 
 #[test]
 fn parse_tree_with_one_node() -> syn::Result<()> {
@@ -133,4 +133,47 @@ fn calculate_tree_depth() {
     let actual_depths = get_tree_depths(&actual);
 
     assert_eq!(actual_depths, expected_depths);
+}
+
+#[test]
+fn parse_branch() -> syn::Result<()> {
+    let cases = [
+        (quote! { sys }, Ok(Branch::from_path(path!(sys), false))),
+        (quote! { sys, }, Ok(Branch::from_path(path!(sys), true))),
+        (quote! { sys => }, Err("unexpected end of input, expected identifier")),
+        (
+            quote! { sys => sys_child },
+            Ok(Branch::new(path!(sys), Some(NodeChild::Node(path!(sys_child))), false)),
+        ),
+        (
+            quote! { sys => sys_child, },
+            Ok(Branch::new(path!(sys), Some(NodeChild::Node(path!(sys_child))), true)),
+        ),
+        (
+            quote! { sys => { sys_child } },
+            Ok(Branch::new(
+                path!(sys),
+                Some(NodeChild::Tree(Tree::from_path(path!(sys_child), false))),
+                false,
+            )),
+        ),
+        (
+            quote! { sys => { sys_child }, },
+            Ok(Branch::new(
+                path!(sys),
+                Some(NodeChild::Tree(Tree::from_path(path!(sys_child), false))),
+                true,
+            )),
+        ),
+    ];
+
+    for (tokens, expected) in cases {
+        let actual = parse2::<Branch>(tokens);
+        match &expected {
+            Ok(expected_branch) => assert_ok(&actual, expected_branch),
+            Err(expected_err) => assert_err(&actual, expected_err),
+        }
+    }
+
+    Ok(())
 }

@@ -105,6 +105,10 @@ impl Tree {
         Self::with_branches(vec![branch])
     }
 
+    pub fn from_path(path: Path, comma: bool) -> Self {
+        Self::from_branch(Branch::from_path(path, comma))
+    }
+
     fn _calculate_depths_impl(this: &mut Self, depth: TreeDepth) {
         this.depth = depth;
         for branch in &mut this.branches {
@@ -374,10 +378,14 @@ mod tests {
     use std::ops::{Add, AddAssign};
 
     use proc_macro2::TokenStream as TokenStream2;
+    use quote::quote;
     use rand::random;
     use syn::parse2;
 
-    use crate::{test_utils::assert_err, Tree, TreeDepth};
+    use crate::{
+        test_utils::{assert_err, path},
+        Node, Tree, TreeDepth,
+    };
 
     #[test]
     fn error_on_empty_tree() {
@@ -402,5 +410,14 @@ mod tests {
         let (value, mut depth) = safe_random_tree_depth();
         AddAssign::add_assign(&mut depth, 1);
         assert_eq!(depth.0, value);
+    }
+
+    #[test]
+    fn node_correctly_creates_the_into_descriptor_call() {
+        let node = Node::new(path!(sys));
+        let expected_call =
+            quote! { ::bevy::prelude::IntoSystemDescriptor::into_descriptor(sys) }.to_string();
+        let actual_call = node.as_into_descriptor_call().to_string();
+        assert_eq!(actual_call, expected_call);
     }
 }
