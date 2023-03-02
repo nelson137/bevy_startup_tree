@@ -10,6 +10,9 @@ use syn::{
     Error, ExprPath, Macro, MacroDelimiter, Path, PathSegment, Result, Token,
 };
 
+#[cfg(test)]
+mod test_utils;
+
 pub struct StartupTree(Tree);
 
 impl Parse for StartupTree {
@@ -363,5 +366,41 @@ impl std::fmt::Display for NodeChild {
             Self::Node(node) => std::fmt::Display::fmt(&node, f),
             Self::Tree(tree) => std::fmt::Display::fmt(&tree, f),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::ops::{Add, AddAssign};
+
+    use proc_macro2::TokenStream as TokenStream2;
+    use rand::random;
+    use syn::parse2;
+
+    use crate::{test_utils::assert_err, Tree, TreeDepth};
+
+    #[test]
+    fn error_on_empty_tree() {
+        let result = parse2::<Tree>(TokenStream2::new());
+        assert_err(&result, "tree may not be empty");
+    }
+
+    fn safe_random_tree_depth() -> (u32, TreeDepth) {
+        let value = random::<u32>();
+        // Subtract 1 to guarantee that adding 1 won't overflow
+        (value, TreeDepth(value.saturating_sub(1)))
+    }
+
+    #[test]
+    fn tree_depth_adds_one() {
+        let (value, depth) = safe_random_tree_depth();
+        assert_eq!(Add::add(depth, 1).0, value);
+    }
+
+    #[test]
+    fn tree_depth_add_assigns_one() {
+        let (value, mut depth) = safe_random_tree_depth();
+        AddAssign::add_assign(&mut depth, 1);
+        assert_eq!(depth.0, value);
     }
 }

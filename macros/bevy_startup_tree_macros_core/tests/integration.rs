@@ -1,17 +1,10 @@
 use bevy_startup_tree_macros_core::{Branch, Node, NodeChild, Tree, TreeDepth};
-use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::parse2;
 
 mod utils;
 
-use self::utils::{assert_err, path};
-
-#[test]
-fn error_on_empty_tree() {
-    let result: syn::Result<Tree> = parse2(TokenStream2::new());
-    assert_err(result, "tree may not be empty");
-}
+use self::utils::path;
 
 #[test]
 fn parse_tree_with_one_node() -> syn::Result<()> {
