@@ -83,12 +83,25 @@ fn tree_to_levels_impl<'tree>(
     }
 }
 
-struct Tree {
-    depth: TreeDepth,
-    branches: Vec<Branch>,
+#[derive(PartialEq)]
+pub struct Tree {
+    pub depth: TreeDepth,
+    pub branches: Vec<Branch>,
 }
 
 impl Tree {
+    pub fn new(depth: TreeDepth, branches: Vec<Branch>) -> Self {
+        Self { depth, branches }
+    }
+
+    pub fn with_branches(branches: Vec<Branch>) -> Self {
+        Self::new(TreeDepth::default(), branches)
+    }
+
+    pub fn from_branch(branch: Branch) -> Self {
+        Self::with_branches(vec![branch])
+    }
+
     fn _calculate_depths_impl(this: &mut Self, depth: TreeDepth) {
         this.depth = depth;
         for branch in &mut this.branches {
@@ -106,7 +119,7 @@ impl Tree {
 impl Parse for Tree {
     fn parse(input: ParseStream) -> Result<Self> {
         if input.is_empty() {
-            return Err(Error::new(input.span(), "subtree may not be empty"));
+            return Err(Error::new(input.span(), "tree may not be empty"));
         }
 
         let mut branches = Vec::new();
@@ -147,8 +160,8 @@ impl std::fmt::Display for Tree {
     }
 }
 
-#[derive(Clone, Copy, Default)]
-struct TreeDepth(u32);
+#[derive(Clone, Copy, Default, PartialEq)]
+pub struct TreeDepth(pub u32);
 
 impl Add<u32> for TreeDepth {
     type Output = Self;
@@ -184,11 +197,36 @@ impl std::fmt::Display for TreeDepth {
     }
 }
 
-struct Branch {
-    node: Node,
-    child: Option<(Token![=>], NodeChild)>,
+#[derive(PartialEq)]
+pub struct Branch {
+    pub node: Node,
+    pub child: Option<(Token![=>], NodeChild)>,
     #[allow(dead_code)]
-    comma_token: Option<Token![,]>,
+    pub comma_token: Option<Token![,]>,
+}
+
+impl Branch {
+    pub fn new(node: Node, child: Option<NodeChild>, comma: bool) -> Self {
+        Self {
+            node,
+            child: child.map(|c| (Default::default(), c)),
+            comma_token: comma.then_some(Default::default()),
+        }
+    }
+
+    pub fn from_node(node: Node, comma: bool) -> Self {
+        Self::new(node, None, comma)
+    }
+
+    pub fn from_path(path: Path, comma: bool) -> Self {
+        Self::from_node(Node::new(path), comma)
+    }
+}
+
+impl From<Node> for Branch {
+    fn from(value: Node) -> Self {
+        Self::from_node(value, false)
+    }
 }
 
 impl Parse for Branch {
@@ -244,9 +282,14 @@ impl std::fmt::Display for Branch {
     }
 }
 
-struct Node(ExprPath);
+#[derive(PartialEq)]
+pub struct Node(ExprPath);
 
 impl Node {
+    pub fn new(path: Path) -> Self {
+        Self(ExprPath { attrs: Vec::new(), qself: None, path })
+    }
+
     fn as_into_descriptor_call(&self) -> TokenStream2 {
         let receiver = &self.0;
         quote! {
@@ -285,7 +328,8 @@ impl std::fmt::Display for Node {
     }
 }
 
-enum NodeChild {
+#[derive(PartialEq)]
+pub enum NodeChild {
     Node(Node),
     Tree(Tree),
 }
