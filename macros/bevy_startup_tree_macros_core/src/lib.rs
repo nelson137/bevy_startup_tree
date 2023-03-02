@@ -167,7 +167,10 @@ impl AddAssign<u32> for TreeDepth {
 #[cfg(debug_assertions)]
 impl std::fmt::Debug for TreeDepth {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        f.debug_tuple("TreeDepth").field(&self.0).finish()
+        match f.alternate() {
+            true => write!(f, "{}", self.0),
+            false => f.debug_tuple("TreeDepth").field(&self.0).finish(),
+        }
     }
 }
 
