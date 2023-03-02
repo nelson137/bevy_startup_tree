@@ -1,4 +1,4 @@
-use bevy_startup_tree_macros_core::{Branch, Node, NodeChild, Tree, TreeDepth};
+use bevy_startup_tree_macros_core::{Branch, Node, NodeChild, StartupTree, Tree, TreeDepth};
 use quote::quote;
 use syn::parse2;
 
@@ -14,6 +14,22 @@ fn parse_tree_with_one_node() -> syn::Result<()> {
 }
 
 #[test]
+fn parse_tree_with_long_branch() -> syn::Result<()> {
+    let tree: Tree = parse2(quote! { sys1 => sys2 => sys3 })?;
+    let expected = Tree::from_branch(Branch::new(
+        Node::new(path!(sys1)),
+        Some(NodeChild::branch(Branch::new(
+            Node::new(path!(sys2)),
+            Some(NodeChild::branch(Branch::from(path!(sys3)))),
+            false,
+        ))),
+        false,
+    ));
+    assert_eq!(tree, expected);
+    Ok(())
+}
+
+#[test]
 fn parse_complex_tree() -> syn::Result<()> {
     let expected = Tree::with_branches(vec![
         Branch::from_path(path!(s1a), true),
@@ -22,8 +38,8 @@ fn parse_complex_tree() -> syn::Result<()> {
             Some(NodeChild::Tree(Tree::with_branches(vec![
                 Branch::new(
                     Node::new(path!(s2a)),
-                    Some(NodeChild::Node(Node::new(path!(s3a)))),
-                    true,
+                    Some(NodeChild::branch(Branch::from_path(path!(s3a), true))),
+                    false,
                 ),
                 Branch::new(
                     Node::new(path!(s2b)),
@@ -62,7 +78,7 @@ fn tokenize_tree() {
             s2a => s3a,
             s2b => {
                 s3b,
-                s3c,
+                s3c => s4a => s5a,
             },
         },
     })
@@ -82,7 +98,9 @@ fn tokenize_tree() {
                 ::bevy::prelude::IntoSystemDescriptor::into_descriptor(s3a),
                 ::bevy::prelude::IntoSystemDescriptor::into_descriptor(s3b),
                 ::bevy::prelude::IntoSystemDescriptor::into_descriptor(s3c)
-            ]
+            ],
+            ::std::vec![::bevy::prelude::IntoSystemDescriptor::into_descriptor(s4a)],
+            ::std::vec![::bevy::prelude::IntoSystemDescriptor::into_descriptor(s5a)]
         ]
     }
     .to_string();
@@ -154,8 +172,8 @@ fn calculate_tree_depth() {
                             Some(NodeChild::Tree(Tree::new(
                                 TreeDepth::default(),
                                 vec![Branch::new(
-                                    path!(s3a),
-                                    Some(NodeChild::Node(Node::new(path!(s4a)))),
+                                    Node::new(path!(s3a)),
+                                    Some(NodeChild::branch(Branch::from(path!(s4a)))),
                                     true,
                                 )],
                             ))),
@@ -176,30 +194,63 @@ fn calculate_tree_depth() {
 #[test]
 fn parse_branch() -> syn::Result<()> {
     let cases = [
-        (quote! { sys }, Ok(Branch::from_path(path!(sys), false))),
-        (quote! { sys, }, Ok(Branch::from_path(path!(sys), true))),
-        (quote! { sys => }, Err("unexpected end of input, expected identifier")),
+        (quote! { sys1 }, Ok(Branch::from_path(path!(sys1), false))),
+        (quote! { sys2, }, Ok(Branch::from_path(path!(sys2), true))),
+        (quote! { sys3 => }, Err("unexpected end of input, expected identifier")),
         (
-            quote! { sys => sys_child },
-            Ok(Branch::new(path!(sys), Some(NodeChild::Node(path!(sys_child))), false)),
-        ),
-        (
-            quote! { sys => sys_child, },
-            Ok(Branch::new(path!(sys), Some(NodeChild::Node(path!(sys_child))), true)),
-        ),
-        (
-            quote! { sys => { sys_child } },
+            quote! { sys4 => child },
             Ok(Branch::new(
-                path!(sys),
-                Some(NodeChild::Tree(Tree::from_path(path!(sys_child), false))),
+                Node::new(path!(sys4)),
+                Some(NodeChild::branch(Branch::from_path(path!(child), false))),
                 false,
             )),
         ),
         (
-            quote! { sys => { sys_child }, },
+            quote! { sys5 => child, },
             Ok(Branch::new(
-                path!(sys),
-                Some(NodeChild::Tree(Tree::from_path(path!(sys_child), false))),
+                Node::new(path!(sys5)),
+                Some(NodeChild::branch(Branch::from_path(path!(child), true))),
+                false,
+            )),
+        ),
+        (
+            quote! { sys6 => child1 => child2 },
+            Ok(Branch::new(
+                Node::new(path!(sys6)),
+                Some(NodeChild::branch(Branch::new(
+                    Node::new(path!(child1)),
+                    Some(NodeChild::branch(Branch::from_path(path!(child2), false))),
+                    false,
+                ))),
+                false,
+            )),
+        ),
+        (
+            quote! { sys7 => child1 => child2, },
+            // FIXME: the comma should be on the outer-most branch
+            Ok(Branch::new(
+                Node::new(path!(sys7)),
+                Some(NodeChild::branch(Branch::new(
+                    Node::new(path!(child1)),
+                    Some(NodeChild::branch(Branch::from_path(path!(child2), true))),
+                    false,
+                ))),
+                false,
+            )),
+        ),
+        (
+            quote! { sys8 => { child } },
+            Ok(Branch::new(
+                Node::new(path!(sys8)),
+                Some(NodeChild::Tree(Tree::from_path(path!(child), false))),
+                false,
+            )),
+        ),
+        (
+            quote! { sys9 => { child }, },
+            Ok(Branch::new(
+                Node::new(path!(sys9)),
+                Some(NodeChild::Tree(Tree::from_path(path!(child), false))),
                 true,
             )),
         ),

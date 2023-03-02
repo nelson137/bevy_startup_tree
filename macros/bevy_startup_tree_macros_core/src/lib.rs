@@ -67,22 +67,23 @@ fn tree_to_levels_impl<'tree>(
     subtree: &'tree Tree,
     depth: usize,
 ) {
-    fn push_node<'tree>(levels: &mut Vec<Vec<&'tree Node>>, node: &'tree Node, depth: usize) {
+    fn push_branch<'tree>(levels: &mut Vec<Vec<&'tree Node>>, branch: &'tree Branch, depth: usize) {
         if depth >= levels.len() {
-            levels.push(vec![node]);
+            levels.push(vec![&branch.node]);
         } else {
-            levels[depth].push(node);
+            levels[depth].push(&branch.node);
+        }
+
+        if let Some((_, child)) = &branch.child {
+            match child {
+                NodeChild::Branch(b) => push_branch(levels, b, depth + 1),
+                NodeChild::Tree(t) => tree_to_levels_impl(levels, t, depth + 1),
+            }
         }
     }
 
     for branch in &subtree.branches {
-        push_node(tree_levels, &branch.node, depth);
-        if let Some((_, child)) = &branch.child {
-            match child {
-                NodeChild::Node(node) => push_node(tree_levels, node, depth + 1),
-                NodeChild::Tree(tree) => tree_to_levels_impl(tree_levels, tree, depth + 1),
-            }
-        }
+        push_branch(tree_levels, branch, depth);
     }
 }
 
@@ -231,8 +232,14 @@ impl Branch {
 }
 
 impl From<Node> for Branch {
-    fn from(value: Node) -> Self {
-        Self::from_node(value, false)
+    fn from(node: Node) -> Self {
+        Self::from_node(node, false)
+    }
+}
+
+impl From<Path> for Branch {
+    fn from(path: Path) -> Self {
+        Self::from_path(path, false)
     }
 }
 
@@ -337,8 +344,14 @@ impl std::fmt::Display for Node {
 
 #[derive(PartialEq)]
 pub enum NodeChild {
-    Node(Node),
+    Branch(Box<Branch>),
     Tree(Tree),
+}
+
+impl NodeChild {
+    pub fn branch(branch: Branch) -> Self {
+        Self::Branch(Box::new(branch))
+    }
 }
 
 impl Parse for NodeChild {
@@ -348,7 +361,7 @@ impl Parse for NodeChild {
             braced!(brace_contents in input);
             NodeChild::Tree(brace_contents.call(Tree::parse)?)
         } else {
-            NodeChild::Node(input.parse()?)
+            NodeChild::Branch(input.parse()?)
         })
     }
 }
@@ -357,7 +370,7 @@ impl Parse for NodeChild {
 impl std::fmt::Debug for NodeChild {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Self::Node(node) => f.debug_tuple("Node").field(node).finish(),
+            Self::Branch(branch) => f.debug_tuple("Branch").field(branch).finish(),
             Self::Tree(tree) => f.debug_tuple("Tree").field(tree).finish(),
         }
     }
@@ -367,7 +380,7 @@ impl std::fmt::Debug for NodeChild {
 impl std::fmt::Display for NodeChild {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Self::Node(node) => std::fmt::Display::fmt(&node, f),
+            Self::Branch(branch) => std::fmt::Display::fmt(&branch, f),
             Self::Tree(tree) => std::fmt::Display::fmt(&tree, f),
         }
     }
