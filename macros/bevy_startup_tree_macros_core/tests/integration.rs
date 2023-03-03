@@ -4,7 +4,7 @@ use syn::parse2;
 
 mod utils;
 
-use self::utils::{assert_err, assert_ok, path};
+use self::utils::{assert_result, path};
 
 #[test]
 fn parse_tree_with_one_node() -> syn::Result<()> {
@@ -158,10 +158,7 @@ fn parse_tree_branches_and_commas() -> syn::Result<()> {
 
     for (tokens, expected) in cases {
         let actual = parse2(tokens);
-        match &expected {
-            Ok(expected_tree) => assert_ok(&actual, expected_tree),
-            Err(expected_err) => assert_err(&actual, expected_err),
-        }
+        assert_result(&actual, &expected);
     }
 
     Ok(())
