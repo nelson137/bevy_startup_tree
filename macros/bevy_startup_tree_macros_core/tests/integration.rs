@@ -9,21 +9,19 @@ use self::utils::{assert_err, assert_ok, path};
 #[test]
 fn parse_tree_with_one_node() -> syn::Result<()> {
     let tree: Tree = parse2(quote! { sys })?;
-    assert_eq!(tree, Tree::from_branch(Node::new(path!(sys)).into()));
+    assert_eq!(tree, Tree::from(path!(sys)));
     Ok(())
 }
 
 #[test]
 fn parse_tree_with_long_branch() -> syn::Result<()> {
     let tree: Tree = parse2(quote! { sys1 => sys2 => sys3 })?;
-    let expected = Tree::from_branch(Branch::new(
+    let expected = Tree::from(Branch::new(
         Node::new(path!(sys1)),
         Some(NodeChild::branch(Branch::new(
             Node::new(path!(sys2)),
             Some(NodeChild::branch(Branch::from(path!(sys3)))),
-            false,
         ))),
-        false,
     ));
     assert_eq!(tree, expected);
     Ok(())
@@ -31,26 +29,20 @@ fn parse_tree_with_long_branch() -> syn::Result<()> {
 
 #[test]
 fn parse_complex_tree() -> syn::Result<()> {
-    let expected = Tree::with_branches(vec![
-        Branch::from_path(path!(s1a), true),
+    let expected = Tree::from_iter([
+        Branch::from_path(path!(s1a)),
         Branch::new(
             Node::new(path!(s1b)),
-            Some(NodeChild::Tree(Tree::with_branches(vec![
+            Some(NodeChild::Tree(Tree::from_iter([
                 Branch::new(
                     Node::new(path!(s2a)),
-                    Some(NodeChild::branch(Branch::from_path(path!(s3a), true))),
-                    false,
+                    Some(NodeChild::branch(Branch::from_path(path!(s3a)))),
                 ),
                 Branch::new(
                     Node::new(path!(s2b)),
-                    Some(NodeChild::Tree(Tree::with_branches(vec![
-                        Branch::from_path(path!(s3b), true),
-                        Branch::from_path(path!(s3c), true),
-                    ]))),
-                    true,
+                    Some(NodeChild::Tree(Tree::from_iter([path!(s3b), path!(s3c)]))),
                 ),
             ]))),
-            true,
         ),
     ]);
 
@@ -60,12 +52,117 @@ fn parse_complex_tree() -> syn::Result<()> {
             s2a => s3a,
             s2b => {
                 s3b,
-                s3c,
-            },
-        },
+                s3c
+            }
+        }
     })?;
 
     assert_eq!(actual, expected);
+
+    Ok(())
+}
+
+#[test]
+fn parse_tree_branches_and_commas() -> syn::Result<()> {
+    let cases = [
+        (quote! { sys1 }, Ok(Tree::from(path!(sys1)))),
+        (quote! { sys2, }, Ok(Tree::from_branches(vec![Branch::from(path!(sys2))], true))),
+        (quote! { sys3 => }, Err("unexpected end of input, expected identifier")),
+        (
+            quote! { sys4 => child },
+            Ok(Tree::from_branch(
+                Branch::new(
+                    Node::new(path!(sys4)),
+                    Some(NodeChild::branch(Branch::from_path(path!(child)))),
+                ),
+                false,
+            )),
+        ),
+        (
+            quote! { sys5 => child, },
+            Ok(Tree::from_branch(
+                Branch::new(
+                    Node::new(path!(sys5)),
+                    Some(NodeChild::branch(Branch::from_path(path!(child)))),
+                ),
+                true,
+            )),
+        ),
+        (
+            quote! { sys6 => child1 => child2 },
+            Ok(Tree::from_branch(
+                Branch::new(
+                    Node::new(path!(sys6)),
+                    Some(NodeChild::branch(Branch::new(
+                        Node::new(path!(child1)),
+                        Some(NodeChild::branch(Branch::from_path(path!(child2)))),
+                    ))),
+                ),
+                false,
+            )),
+        ),
+        (
+            quote! { sys7 => child1 => child2, },
+            Ok(Tree::from_branch(
+                Branch::new(
+                    Node::new(path!(sys7)),
+                    Some(NodeChild::branch(Branch::new(
+                        Node::new(path!(child1)),
+                        Some(NodeChild::branch(Branch::from_path(path!(child2)))),
+                    ))),
+                ),
+                true,
+            )),
+        ),
+        (
+            quote! { sys8 => { child } },
+            Ok(Tree::from_branch(
+                Branch::new(
+                    Node::new(path!(sys8)),
+                    Some(NodeChild::Tree(Tree::from_path(path!(child), false))),
+                ),
+                false,
+            )),
+        ),
+        (
+            quote! { sys9 => { child }, },
+            Ok(Tree::from_branch(
+                Branch::new(
+                    Node::new(path!(sys9)),
+                    Some(NodeChild::Tree(Tree::from_path(path!(child), false))),
+                ),
+                true,
+            )),
+        ),
+        (
+            quote! { sys10 => { child, }, },
+            Ok(Tree::from_branch(
+                Branch::new(
+                    Node::new(path!(sys10)),
+                    Some(NodeChild::Tree(Tree::from_path(path!(child), true))),
+                ),
+                true,
+            )),
+        ),
+        (quote! { sys11a sys11b }, Err("expected `,`")),
+        (quote! { sys12a, sys12b }, Ok(Tree::from_iter([path!(sys12a), path!(sys12b)]))),
+        (
+            quote! { sys13a => child, sys13b },
+            Ok(Tree::from_iter([
+                Branch::new(Node::new(path!(sys13a)), Some(NodeChild::branch(path!(child).into()))),
+                Branch::from(path!(sys13b)),
+            ])),
+        ),
+        (quote! { sys14a => child sys14b }, Err("expected `,`")),
+    ];
+
+    for (tokens, expected) in cases {
+        let actual = parse2(tokens);
+        match &expected {
+            Ok(expected_tree) => assert_ok(&actual, expected_tree),
+            Err(expected_err) => assert_err(&actual, expected_err),
+        }
+    }
 
     Ok(())
 }
@@ -160,13 +257,13 @@ fn calculate_tree_depth() {
     let mut actual = Tree::new(
         TreeDepth::default(),
         vec![
-            Branch::from_path(path!(s1a), true),
+            Branch::from_path(path!(s1a)),
             Branch::new(
                 Node::new(path!(s1b)),
                 Some(NodeChild::Tree(Tree::new(
                     TreeDepth::default(),
                     vec![
-                        Branch::from_path(path!(s2a), true),
+                        Branch::from_path(path!(s2a)),
                         Branch::new(
                             Node::new(path!(s2b)),
                             Some(NodeChild::Tree(Tree::new(
@@ -174,14 +271,11 @@ fn calculate_tree_depth() {
                                 vec![Branch::new(
                                     Node::new(path!(s3a)),
                                     Some(NodeChild::branch(Branch::from(path!(s4a)))),
-                                    true,
                                 )],
                             ))),
-                            true,
                         ),
                     ],
                 ))),
-                true,
             ),
         ],
     );
@@ -189,80 +283,4 @@ fn calculate_tree_depth() {
     let actual_depths = get_tree_depths(&actual);
 
     assert_eq!(actual_depths, expected_depths);
-}
-
-#[test]
-fn parse_branch() -> syn::Result<()> {
-    let cases = [
-        (quote! { sys1 }, Ok(Branch::from_path(path!(sys1), false))),
-        (quote! { sys2, }, Ok(Branch::from_path(path!(sys2), true))),
-        (quote! { sys3 => }, Err("unexpected end of input, expected identifier")),
-        (
-            quote! { sys4 => child },
-            Ok(Branch::new(
-                Node::new(path!(sys4)),
-                Some(NodeChild::branch(Branch::from_path(path!(child), false))),
-                false,
-            )),
-        ),
-        (
-            quote! { sys5 => child, },
-            Ok(Branch::new(
-                Node::new(path!(sys5)),
-                Some(NodeChild::branch(Branch::from_path(path!(child), true))),
-                false,
-            )),
-        ),
-        (
-            quote! { sys6 => child1 => child2 },
-            Ok(Branch::new(
-                Node::new(path!(sys6)),
-                Some(NodeChild::branch(Branch::new(
-                    Node::new(path!(child1)),
-                    Some(NodeChild::branch(Branch::from_path(path!(child2), false))),
-                    false,
-                ))),
-                false,
-            )),
-        ),
-        (
-            quote! { sys7 => child1 => child2, },
-            // FIXME: the comma should be on the outer-most branch
-            Ok(Branch::new(
-                Node::new(path!(sys7)),
-                Some(NodeChild::branch(Branch::new(
-                    Node::new(path!(child1)),
-                    Some(NodeChild::branch(Branch::from_path(path!(child2), true))),
-                    false,
-                ))),
-                false,
-            )),
-        ),
-        (
-            quote! { sys8 => { child } },
-            Ok(Branch::new(
-                Node::new(path!(sys8)),
-                Some(NodeChild::Tree(Tree::from_path(path!(child), false))),
-                false,
-            )),
-        ),
-        (
-            quote! { sys9 => { child }, },
-            Ok(Branch::new(
-                Node::new(path!(sys9)),
-                Some(NodeChild::Tree(Tree::from_path(path!(child), false))),
-                true,
-            )),
-        ),
-    ];
-
-    for (tokens, expected) in cases {
-        let actual = parse2::<Branch>(tokens);
-        match &expected {
-            Ok(expected_branch) => assert_ok(&actual, expected_branch),
-            Err(expected_err) => assert_err(&actual, expected_err),
-        }
-    }
-
-    Ok(())
 }

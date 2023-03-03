@@ -11,7 +11,7 @@ fn main() {
             sys_1_a => {
                 sys_2_a,
                 sys_2_b,
-            }
+            },
             sys_1_b => {
                 sys_2_c,
                 sys_2_d => sys_3_a,

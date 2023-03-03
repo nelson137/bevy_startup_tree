@@ -90,24 +90,28 @@ fn tree_to_levels_impl<'tree>(
 #[derive(PartialEq)]
 pub struct Tree {
     pub depth: TreeDepth,
-    pub branches: Vec<Branch>,
+    pub branches: Punctuated<Branch, Token![,]>,
 }
 
 impl Tree {
     pub fn new(depth: TreeDepth, branches: Vec<Branch>) -> Self {
-        Self { depth, branches }
+        Self { depth, branches: Punctuated::from_iter(branches) }
     }
 
-    pub fn with_branches(branches: Vec<Branch>) -> Self {
-        Self::new(TreeDepth::default(), branches)
+    pub fn from_branches(branches: Vec<Branch>, trailing_comma: bool) -> Self {
+        let mut branches = Punctuated::from_iter(branches);
+        if trailing_comma {
+            branches.push_punct(Default::default());
+        }
+        Self { depth: TreeDepth::default(), branches }
     }
 
-    pub fn from_branch(branch: Branch) -> Self {
-        Self::with_branches(vec![branch])
+    pub fn from_branch(branch: Branch, trailing_comma: bool) -> Self {
+        Self::from_branches(vec![branch], trailing_comma)
     }
 
-    pub fn from_path(path: Path, comma: bool) -> Self {
-        Self::from_branch(Branch::from_path(path, comma))
+    pub fn from_path(path: Path, trailing_comma: bool) -> Self {
+        Self::from_branch(Branch::from_path(path), trailing_comma)
     }
 
     fn _calculate_depths_impl(this: &mut Self, depth: TreeDepth) {
@@ -124,18 +128,31 @@ impl Tree {
     }
 }
 
+impl<B: Into<Branch>> FromIterator<B> for Tree {
+    fn from_iter<T: IntoIterator<Item = B>>(iter: T) -> Self {
+        let branches = iter.into_iter().map(Into::into).collect();
+        Self::from_branches(branches, false)
+    }
+}
+
+impl From<Branch> for Tree {
+    fn from(branch: Branch) -> Self {
+        Self::from_branch(branch, false)
+    }
+}
+
+impl From<Path> for Tree {
+    fn from(path: Path) -> Self {
+        Self::from_path(path, false)
+    }
+}
+
 impl Parse for Tree {
     fn parse(input: ParseStream) -> Result<Self> {
         if input.is_empty() {
             return Err(Error::new(input.span(), "tree may not be empty"));
         }
-
-        let mut branches = Vec::new();
-        while !input.is_empty() {
-            branches.push(input.parse()?);
-        }
-
-        Ok(Self { depth: TreeDepth::default(), branches })
+        Ok(Self { depth: TreeDepth::default(), branches: Punctuated::parse_terminated(input)? })
     }
 }
 
@@ -209,37 +226,31 @@ impl std::fmt::Display for TreeDepth {
 pub struct Branch {
     pub node: Node,
     pub child: Option<(Token![=>], NodeChild)>,
-    #[allow(dead_code)]
-    pub comma_token: Option<Token![,]>,
 }
 
 impl Branch {
-    pub fn new(node: Node, child: Option<NodeChild>, comma: bool) -> Self {
-        Self {
-            node,
-            child: child.map(|c| (Default::default(), c)),
-            comma_token: comma.then_some(Default::default()),
-        }
+    pub fn new(node: Node, child: Option<NodeChild>) -> Self {
+        Self { node, child: child.map(|c| (Default::default(), c)) }
     }
 
-    pub fn from_node(node: Node, comma: bool) -> Self {
-        Self::new(node, None, comma)
+    pub fn from_node(node: Node) -> Self {
+        Self::new(node, None)
     }
 
-    pub fn from_path(path: Path, comma: bool) -> Self {
-        Self::from_node(Node::new(path), comma)
+    pub fn from_path(path: Path) -> Self {
+        Self::from_node(Node::new(path))
     }
 }
 
 impl From<Node> for Branch {
     fn from(node: Node) -> Self {
-        Self::from_node(node, false)
+        Self::from_node(node)
     }
 }
 
 impl From<Path> for Branch {
     fn from(path: Path) -> Self {
-        Self::from_path(path, false)
+        Self::from_path(path)
     }
 }
 
@@ -255,9 +266,7 @@ impl Parse for Branch {
             None
         };
 
-        let comma_token = input.parse().ok();
-
-        Ok(Self { node, child, comma_token })
+        Ok(Self { node, child })
     }
 }
 
@@ -271,7 +280,6 @@ impl std::fmt::Debug for Branch {
         f.debug_struct("Branch")
             .field("node", &self.node)
             .field("child", &self.child.as_ref().map(|(_, child)| (FatArrow, child)))
-            .field("comma_token", &self.comma_token.and(Some(Comma)))
             .finish()
     }
 }
@@ -279,17 +287,11 @@ impl std::fmt::Debug for Branch {
 #[cfg(debug_assertions)]
 impl std::fmt::Display for Branch {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use std::fmt::Write;
-
         std::fmt::Display::fmt(&self.node, f)?;
 
         if let Some((_, child)) = &self.child {
             f.write_str(" => ")?;
             std::fmt::Display::fmt(child, f)?;
-        }
-
-        if self.comma_token.is_some() {
-            f.write_char(',')?;
         }
 
         Ok(())
