@@ -6,12 +6,12 @@ description = "A bevy extension for inserting  startup system dependency graphs 
 documentation = "https://docs.rs/bevy_startup_tree"
 keywords = ["bevy", "game", "gamedev", "tree", "utility"]
 license = "MIT OR Apache-2.0"
-exclude = ["examples/usage"]
+exclude = ["examples/*"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace]
-members = ["macros/*", "examples/usage"]
+members = ["macros/*", "examples/*"]
 
 [dependencies]
 bevy_app = "0.9.1"
