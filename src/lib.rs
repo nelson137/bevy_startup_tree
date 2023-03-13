@@ -1,3 +1,118 @@
+//! Insert dependency trees of startup systems into [Bevy `App`s][bevy App].
+//!
+//! Define dependency trees of startup systems for a Bevy `App` with the [`startup_tree`] macro.
+//! Insert trees into an `App` with the [`AddStartupTree::add_startup_tree`] extension method. It is
+//! strongly recommended that the macro is used to generate the data structure that is consumed by
+//! `add_startup_tree`.
+//!
+//! This is useful in scenarios where the startup logic is complex and would benefit from being
+//! broken up into multiple systems. Some of this startup logic can be run in parallel; others may
+//! require that certain systems run in a particular order. For example, a system that spawns a
+//! complex `bevy_ui` can get very large, deeply nested, and difficult to maintain. Such a system
+//! can be divided into multiple that work together to create the complex entity hierarchy. Systems
+//! that spawn children entities must run after the one that spawns the parent; this is where
+//! `bevy_startup_tree` becomes useful.
+//!
+//! ## Behavior
+//!
+//! The systems that make up a startup tree, or nodes, are grouped by depth. The `startup_tree`
+//! macro generates a 2-D array where each row with index `i` contains the nodes at depth `i` in the
+//! tree. This 2-D array is consumed by `add_startup_tree` where each depth sub-array is combined
+//! into a [parallel `SystemStage`][`SystemStage::parallel`].
+//!
+//! ```rust no_run
+//! # use bevy_startup_tree::startup_tree;
+//! # fn sys_1_a() {}
+//! # fn sys_1_b() {}
+//! # fn sys_2() {}
+//! # std::mem::drop(
+//! startup_tree! {
+//!     sys_1_a,
+//!     sys_1_b => sys_2
+//! }
+//! # );
+//! ```
+//!
+//! This macro invocation would generate the following 2-D array:
+//!
+//! <pre>
+//! [ [sys_1_a, sys_1_b], [sys_2] ]
+//! </pre>
+//!
+//! `add_startup_tree` inserts the tree after [`StartupStage::Startup`] so the stages of the startup
+//! phase run in the following order:
+//!
+//! - `StartupStage::PreStartup`
+//! - `StartupStage::Startup`
+//! - Tree stages...
+//! - `StartupStage::PostStartup`
+//!
+//! ## Example
+//!
+//! The following is an example Bevy `App` with a startup tree. Note that the app will go through
+//! the startup phase, run a single frame cycle, and then exit.
+//!
+//! ```rust no_run
+//! use bevy::{log::LogPlugin, prelude::*};
+//! use bevy_startup_tree::{startup_tree, AddStartupTree};
+//!
+//! fn main() {
+//!     App::new()
+//!         .add_plugin(CorePlugin::default())
+//!         .add_plugin(LogPlugin::default())
+//!         .add_startup_system(begin)
+//!         .add_startup_tree(startup_tree! {
+//!             sys_1_a,
+//!             sys_1_b => sys_2_a,
+//!             sys_1_c => {
+//!                 sys_2_b,
+//!                 sys_2_c => sys_3_a,
+//!             },
+//!         })
+//!         .add_startup_system_to_stage(StartupStage::PostStartup, end)
+//!         .run();
+//! }
+//!
+//! fn begin() { info!("[Begin]"); }
+//! fn sys_1_a() { info!("1.a"); }
+//! fn sys_1_b() { info!("1.b"); }
+//! fn sys_1_c() { info!("1.c"); }
+//! fn sys_2_a() { info!("2.a"); }
+//! fn sys_2_b() { info!("2.b"); }
+//! fn sys_2_c() { info!("2.c"); }
+//! fn sys_3_a() { info!("3.a"); }
+//! fn end() { info!("[End]"); }
+//! ```
+//!
+//! ### Output
+//!
+//! <pre>
+//! 2023-01-08T19:38:41.664766Z  INFO example_app: [Begin]
+//! 2023-01-08T19:38:41.664906Z  INFO example_app: 1.b
+//! 2023-01-08T19:38:41.664937Z  INFO example_app: 1.c
+//! 2023-01-08T19:38:41.664959Z  INFO example_app: 1.a
+//! 2023-01-08T19:38:41.665104Z  INFO example_app: 2.c
+//! 2023-01-08T19:38:41.665133Z  INFO example_app: 2.a
+//! 2023-01-08T19:38:41.665141Z  INFO example_app: 2.b
+//! 2023-01-08T19:38:41.665204Z  INFO example_app: 3.a
+//! 2023-01-08T19:38:41.665264Z  INFO example_app: [End]
+//! </pre>
+//!
+//! Note that all of the logs for a depth (those with the same number) are grouped together. This is
+//! because all of the systems at some depth in the tree are in the same stage. However, the logs
+//! within a stage run in no particular order because the stage is
+//! [parallel][`SystemStage::parallel`].
+//!
+//! The `begin` and `end` systems show when the tree runs during the startup phase. The tree's
+//! stages are inserted after `StartupStage::Startup` so any system added to
+//! `StartupStage::PreStartup` or `StartupStage::Startup` run before the tree and any system added
+//! to `StartupStage::PostStartup` run after the tree.
+//!
+//! [bevy App]: https://docs.rs/bevy/*/bevy/app/struct.App.html
+//! [`SystemStage`]: https://docs.rs/bevy/~0.9/bevy/ecs/schedule/struct.SystemStage.html
+//! [`StartupStage::Startup`]: https://docs.rs/bevy/~0.9/bevy/app/enum.StartupStage.html
+//! [`SystemStage::parallel`]: https://docs.rs/bevy/~0.9/bevy/ecs/schedule/struct.SystemStage.html#method.parallel
+
 use std::fmt::Write;
 
 use bevy_app::{App, StartupStage};
@@ -8,106 +123,37 @@ mod rng;
 
 use self::rng::get_rng;
 
-/// Generate a tree of startup systems that can be used by [`AddStartupTree`].
+/// Generate a tree of startup systems that can be consumed by [`AddStartupTree::add_startup_tree`].
 ///
-/// TODO
+/// See the [module docs](crate) for more information.
 pub use bevy_startup_tree_macros::startup_tree;
 
-/// An extension trait for [`bevy::app::App`](bevy::app::App).
+/// An extension trait for [`bevy::app::App`][bevy App].
+///
+/// [bevy App]: https://docs.rs/bevy/*/bevy/app/struct.App.html
 pub trait AddStartupTree {
-    /// Add a dependency tree of startup systems. See [`startup_tree`] for how to build a tree.
+    /// Add a dependency tree of startup systems to the [Bevy `App`][bevy App] `&mut self`.
     ///
-    /// Each level of the tree is grouped into a [`SystemStage`] with the parallel executor, meaning
-    /// there is no guarantee of the order in which they will run. The stages are also made to run
-    /// in order.
+    /// The input is an iterator over a 2-D array describing a tree where each row (inner iterator
+    /// `I`) with index `i` contains the nodes at depth `i` in the tree. Nodes at the same depth are
+    /// run in parallel and thus the order in which they will run is not guaranteed. It is strongly
+    /// recommended that the [`startup_tree` macro](startup_tree) is used to generate the tree.
     ///
-    /// ## Example
+    /// See the [module docs](crate) for more information.
     ///
-    /// The following is an example bevy app that uses a startup tree with 11 systems that
-    /// demonstrate the order of execution. The app is configured to only go through startup and
-    /// tick once.
-    ///
-    /// The startup tree systems are arranged into 3 levels -- those named `sys_1_*`, `sys_2_*`, and
-    /// `sys_3_*` -- that log their name. Since levels run *in order* and systems within a level run
-    /// *unordered* the logs of level 1 will be together, then those of level 2, then 3.
-    ///
-    /// There are also the `begin` and `end` systems which show when the tree runs during startup.
-    /// The tree is added after [`StartupStage::Startup`] so the startup stages run in the following
-    /// order:
-    ///
-    /// - `StartupStage::PreStartup`
-    /// - `StartupStage::Startup`
-    /// - tree level 1
-    /// - tree level 2
-    /// - tree level 3
-    /// - `StartupStage::PostStartup`
-    ///
-    /// ### Code
-    ///
-    /// ```rust ignore
-    /// use bevy::{log::LogPlugin, prelude::*};
-    /// use bevy_startup_tree::{startup_tree, AddStartupTree};
-    ///
-    /// fn main() {
-    ///     App::new()
-    ///         .add_plugin(CorePlugin::default())
-    ///         .add_plugin(LogPlugin::default())
-    ///         .add_startup_system(begin)
-    ///         .add_startup_tree(startup_tree! {
-    ///             sys_1_a => {
-    ///                 sys_2_a,
-    ///                 sys_2_b,
-    ///             },
-    ///             sys_1_b => {
-    ///                 sys_2_c,
-    ///                 sys_2_d => sys_3_a,
-    ///             },
-    ///             sys_1_c,
-    ///             sys_1_d,
-    ///         })
-    ///         .add_startup_system_to_stage(StartupStage::PostStartup, end)
-    ///         .run();
-    /// }
-    ///
-    /// fn begin() { info!("[Begin]"); }
-    /// fn sys_1_a() { info!("1.a"); }
-    /// fn sys_1_b() { info!("1.b"); }
-    /// fn sys_1_c() { info!("1.c"); }
-    /// fn sys_1_d() { info!("1.d"); }
-    /// fn sys_2_a() { info!("2.a"); }
-    /// fn sys_2_b() { info!("2.b"); }
-    /// fn sys_2_c() { info!("2.c"); }
-    /// fn sys_2_d() { info!("2.d"); }
-    /// fn sys_3_a() { info!("3.a"); }
-    /// fn end() { info!("[End]"); }
-    /// ```
-    ///
-    /// ### Output
-    ///
-    /// ```ignore
-    /// 2023-01-08T19:38:41.664766Z  INFO example_app: [Begin]
-    /// 2023-01-08T19:38:41.664906Z  INFO example_app: 1.b
-    /// 2023-01-08T19:38:41.664937Z  INFO example_app: 1.c
-    /// 2023-01-08T19:38:41.664959Z  INFO example_app: 1.a
-    /// 2023-01-08T19:38:41.664967Z  INFO example_app: 1.d
-    /// 2023-01-08T19:38:41.665104Z  INFO example_app: 2.c
-    /// 2023-01-08T19:38:41.665109Z  INFO example_app: 2.d
-    /// 2023-01-08T19:38:41.665133Z  INFO example_app: 2.a
-    /// 2023-01-08T19:38:41.665141Z  INFO example_app: 2.b
-    /// 2023-01-08T19:38:41.665204Z  INFO example_app: 3.a
-    /// 2023-01-08T19:38:41.665264Z  INFO example_app: [End]
-    /// ```
-    fn add_startup_tree<T, U>(&mut self, startup_tree: T) -> &mut Self
+    /// [`SystemStage::parallel`]: https://docs.rs/bevy/~0.9/bevy/ecs/schedule/struct.SystemStage.html#method.parallel
+    /// [bevy App]: https://docs.rs/bevy/*/bevy/app/struct.App.html
+    fn add_startup_tree<I2, I>(&mut self, startup_tree: I2) -> &mut Self
     where
-        T: IntoIterator<Item = U>,
-        U: IntoIterator<Item = SystemDescriptor>;
+        I2: IntoIterator<Item = I>,
+        I: IntoIterator<Item = SystemDescriptor>;
 }
 
 impl AddStartupTree for App {
-    fn add_startup_tree<T, U>(&mut self, startup_tree: T) -> &mut Self
+    fn add_startup_tree<I2, I>(&mut self, startup_tree: I2) -> &mut Self
     where
-        T: IntoIterator<Item = U>,
-        U: IntoIterator<Item = SystemDescriptor>,
+        I2: IntoIterator<Item = I>,
+        I: IntoIterator<Item = SystemDescriptor>,
     {
         let mut rng = get_rng();
         let namespace = Alphanumeric.sample_string(&mut rng, 6);
