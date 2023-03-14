@@ -13,7 +13,7 @@
 //! that spawn children entities must run after the one that spawns the parent; this is where
 //! `bevy_startup_tree` becomes useful.
 //!
-//! ## Behavior
+//! # Behavior
 //!
 //! The systems that make up a startup tree, or nodes, are grouped by depth. The `startup_tree`
 //! macro generates a 2-D array where each row with index `i` contains the nodes at depth `i` in the
@@ -47,7 +47,7 @@
 //! - Tree stages...
 //! - `StartupStage::PostStartup`
 //!
-//! ## Example
+//! # Example
 //!
 //! The following is an example Bevy `App` with a startup tree. Note that the app will go through
 //! the startup phase, run a single frame cycle, and then exit.
@@ -84,7 +84,7 @@
 //! fn end() { info!("[End]"); }
 //! ```
 //!
-//! ### Output
+//! ## Output
 //!
 //! <pre>
 //! 2023-01-08T19:38:41.664766Z  INFO example_app: [Begin]
@@ -108,7 +108,7 @@
 //! `StartupStage::PreStartup` or `StartupStage::Startup` run before the tree and any system added
 //! to `StartupStage::PostStartup` run after the tree.
 //!
-//! ## Bevy Compatibility
+//! # Bevy Compatibility
 //!
 //! `bevy` | `bevy_startup_tree`
 //! :--- | :---
