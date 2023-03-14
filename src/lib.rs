@@ -108,6 +108,13 @@
 //! `StartupStage::PreStartup` or `StartupStage::Startup` run before the tree and any system added
 //! to `StartupStage::PostStartup` run after the tree.
 //!
+//! ## Bevy Compatibility
+//!
+//! `bevy` | `bevy_startup_tree`
+//! :--- | :---
+//! `~0.9` | `>=0.1.2`
+//! `>=0.10` | N/A
+//!
 //! [bevy App]: https://docs.rs/bevy/*/bevy/app/struct.App.html
 //! [`SystemStage`]: https://docs.rs/bevy/~0.9/bevy/ecs/schedule/struct.SystemStage.html
 //! [`StartupStage::Startup`]: https://docs.rs/bevy/~0.9/bevy/app/enum.StartupStage.html
