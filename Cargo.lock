@@ -697,7 +697,6 @@ dependencies = [
  "bevy_ecs",
  "bevy_startup_tree_macros",
  "delegate",
- "lazy_static",
  "rand",
 ]
 

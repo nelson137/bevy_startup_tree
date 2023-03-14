@@ -277,19 +277,16 @@ mod tests {
     }
 
     mod e2e {
-        use std::sync::Mutex;
-
         use bevy::{
             app::{App, StartupStage},
             core::CorePlugin,
+            ecs::system::{NonSendMut, Resource},
         };
-        use lazy_static::lazy_static;
 
         use crate::{rng::reset_rng, startup_tree, AddStartupTree};
 
-        lazy_static! {
-            static ref TEST_EVENTS: Mutex<Vec<TestEvent>> = Mutex::new(Vec::with_capacity(16));
-        }
+        #[derive(Resource, Debug)]
+        struct TestEventData(Vec<TestEvent>);
 
         #[derive(Debug, PartialEq, Eq)]
         enum TestEvent {
@@ -302,7 +299,7 @@ mod tests {
 
         macro_rules! test_systems {
             ($($name:ident => $event:path);+ $(;)?) => {
-                $( fn $name() { TEST_EVENTS.lock().unwrap().push($event); } )+
+                $( fn $name(mut data: NonSendMut<TestEventData>) { data.0.push($event); } )+
             };
         }
 
@@ -326,6 +323,7 @@ mod tests {
 
             let mut app = App::new();
             app.add_plugin(CorePlugin::default());
+            app.insert_non_send_resource(TestEventData(Vec::with_capacity(11)));
             app.add_startup_system(begin);
             app.add_startup_tree(startup_tree! {
                 sys_1_a => {
@@ -341,11 +339,11 @@ mod tests {
             });
             app.add_startup_system_to_stage(StartupStage::PostStartup, end);
 
-            app.run();
+            app.update();
 
             assert_eq!(
-                *TEST_EVENTS.lock().unwrap(),
-                vec![
+                app.world.non_send_resource::<TestEventData>().0,
+                &[
                     TestEvent::Begin,
                     TestEvent::One,
                     TestEvent::One,
