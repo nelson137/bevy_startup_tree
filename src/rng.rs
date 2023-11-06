@@ -35,7 +35,7 @@ mod test_rng {
     }
 
     pub fn get_rng() -> impl Rng {
-        TestRng(TEST_RNG_INNER.with(|rng| Rc::clone(rng)))
+        TestRng(TEST_RNG_INNER.with(Rc::clone))
     }
 }
 
