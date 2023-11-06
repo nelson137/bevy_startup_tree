@@ -4,8 +4,9 @@ use bevy_startup_tree::{startup_tree, AddStartupTree};
 
 fn main() {
     App::new()
-        .add_plugin(CorePlugin::default())
+        .add_plugin(TaskPoolPlugin::default())
         .add_plugin(LogPlugin::default())
+        .add_plugin(FrameCountPlugin)
         .add_startup_system(begin)
         .add_startup_tree(startup_tree! {
             sys_1_a => {
@@ -19,7 +20,7 @@ fn main() {
             sys_1_c,
             sys_1_d,
         })
-        .add_startup_system_to_stage(StartupStage::PostStartup, end)
+        .add_startup_system(end.in_base_set(StartupSet::PostStartup))
         .add_system(|frame: Res<FrameCount>| info!(frame = frame.0))
         .run();
 }

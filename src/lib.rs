@@ -58,9 +58,9 @@
 //!
 //! fn main() {
 //!     App::new()
-//!         .add_plugin(CorePlugin::default())
+//!         .add_plugin(TaskPoolPlugin::default())
 //!         .add_plugin(LogPlugin::default())
-//!         .add_startup_system(begin)
+//!         .add_startup_system(begin.in_base_set(StartupSet::Startup))
 //!         .add_startup_tree(startup_tree! {
 //!             sys_1_a,
 //!             sys_1_b => sys_2_a,
@@ -69,7 +69,7 @@
 //!                 sys_2_c => sys_3_a,
 //!             },
 //!         })
-//!         .add_startup_system_to_stage(StartupStage::PostStartup, end)
+//!         .add_startup_system(end.in_base_set(StartupSet::PostStartup))
 //!         .run();
 //! }
 //!
@@ -122,13 +122,17 @@
 
 use std::fmt::Write;
 
-use bevy_app::{App, StartupStage};
-use bevy_ecs::schedule::{SystemDescriptor, SystemStage};
+use bevy_app::{App, StartupSet};
+use bevy_ecs::schedule::{
+    apply_system_buffers, IntoSystemConfig, IntoSystemSetConfig, SystemConfig,
+};
 use rand::distributions::{Alphanumeric, DistString};
 
 mod rng;
+mod schedule;
 
 use self::rng::get_rng;
+use self::schedule::{AppExts, StartupTreeLayer};
 
 /// Generate a tree of startup systems that can be consumed by [`AddStartupTree::add_startup_tree`].
 ///
@@ -153,38 +157,44 @@ pub trait AddStartupTree {
     fn add_startup_tree<I2, I>(&mut self, startup_tree: I2) -> &mut Self
     where
         I2: IntoIterator<Item = I>,
-        I: IntoIterator<Item = SystemDescriptor>;
+        I: IntoIterator<Item = SystemConfig>;
 }
 
 impl AddStartupTree for App {
     fn add_startup_tree<I2, I>(&mut self, startup_tree: I2) -> &mut Self
     where
         I2: IntoIterator<Item = I>,
-        I: IntoIterator<Item = SystemDescriptor>,
+        I: IntoIterator<Item = SystemConfig>,
     {
         let mut rng = get_rng();
         let namespace = Alphanumeric.sample_string(&mut rng, 6);
-        let label_base = format!("__startup_tree_stage_{namespace}_");
+        let label_base = format!("__startup_tree_{namespace}");
 
-        let mut last_label: &'static str = "";
+        let mut last_layer_set: Option<StartupTreeLayer> = None;
 
         for (i, level) in startup_tree.into_iter().enumerate() {
             let mut label = label_base.clone();
-            write!(label, "{i}").unwrap();
-            let label: &'static str = Box::leak(label.into_boxed_str());
+            write!(label, "_layer_{i}").unwrap();
+            let label: &str = label.leak();
 
-            let mut stage = SystemStage::parallel();
-            for system in level {
-                stage.add_system(system);
-            }
+            let layer_set = StartupTreeLayer::Set(label);
 
-            if i == 0 {
-                self.add_startup_stage_after(StartupStage::Startup, label, stage);
+            let layer_config = layer_set.before(StartupSet::PostStartup);
+            self.configure_startup_set(if let Some(last_layer_set) = last_layer_set {
+                layer_config.after(last_layer_set)
             } else {
-                self.add_startup_stage_after(last_label, label, stage);
+                layer_config.after(StartupSet::StartupFlush)
+            });
+
+            for system in level {
+                self.add_startup_system(system.in_base_set(layer_set));
             }
 
-            last_label = label;
+            let flush_set = StartupTreeLayer::Flush(label);
+            self.configure_startup_set(flush_set.after(layer_set).before(StartupSet::PostStartup));
+            self.add_startup_system(apply_system_buffers.in_base_set(flush_set));
+
+            last_layer_set = Some(flush_set);
         }
 
         self
@@ -195,26 +205,22 @@ impl AddStartupTree for App {
 mod tests {
     use std::collections::HashSet;
 
-    use bevy::{
-        app::{App, StartupSchedule},
-        ecs::schedule::{Schedule, StageLabel},
-    };
+    use bevy::prelude::{App, CoreSchedule, Schedules};
 
-    use crate::{rng::reset_rng, startup_tree, AddStartupTree};
+    use crate::{rng::reset_rng, startup_tree, AddStartupTree, StartupTreeLayer};
 
     fn get_app_startup_tree_labels(app: &App) -> impl Iterator<Item = &'static str> + '_ {
-        let startup_schedule = app.schedule.get_stage::<Schedule>(StartupSchedule).unwrap();
-        let n_labels = startup_schedule.iter_stages().count();
-        // By default, the startup schedule contains the stages `PreStartup`, `Startup`, and
-        // `PostStartup`. Startup tree stages are inserted after `Startup` meaning the first 2
-        // labels can be skipped. Then, we can take the amount of startup tree labels `n - 3` where
-        // `n` is the total number of labels.
-        let n_startup_tree_stages = n_labels - 3;
-        startup_schedule
-            .iter_stages()
-            .skip(2)
-            .take(n_startup_tree_stages)
-            .map(|(id, _)| id.as_str())
+        let schedules = app.world.resource::<Schedules>();
+        let startup_schedule = schedules.get(&CoreSchedule::Startup).expect("get startup schedule");
+        let startup_graph = startup_schedule.graph();
+
+        startup_graph.hierarchy().graph().nodes().filter_map(|id| {
+            startup_graph
+                .get_set_at(id)
+                .and_then(|set| set.as_any().downcast_ref::<StartupTreeLayer>())
+                .copied()
+                .and_then(StartupTreeLayer::set_label)
+        })
     }
 
     fn system() {}
@@ -232,9 +238,9 @@ mod tests {
         });
 
         let expected_labels = HashSet::from([
-            "__startup_tree_stage_zujxzB_0",
-            "__startup_tree_stage_zujxzB_1",
-            "__startup_tree_stage_zujxzB_2",
+            "__startup_tree_zujxzB_layer_0",
+            "__startup_tree_zujxzB_layer_1",
+            "__startup_tree_zujxzB_layer_2",
         ]);
         let actual_labels = HashSet::from_iter(get_app_startup_tree_labels(&app));
         assert_eq!(actual_labels, expected_labels);
@@ -259,10 +265,10 @@ mod tests {
         });
 
         let expected_labels = HashSet::from([
-            "__startup_tree_stage_zujxzB_0",
-            "__startup_tree_stage_zujxzB_1",
-            "__startup_tree_stage_zujxzB_2",
-            "__startup_tree_stage_zujxzB_3",
+            "__startup_tree_zujxzB_layer_0",
+            "__startup_tree_zujxzB_layer_1",
+            "__startup_tree_zujxzB_layer_2",
+            "__startup_tree_zujxzB_layer_3",
         ]);
         let actual_labels = HashSet::from_iter(get_app_startup_tree_labels(&app));
         assert_eq!(actual_labels, expected_labels);
@@ -278,17 +284,13 @@ mod tests {
         app.add_startup_tree(startup_tree! { system });
 
         let expected_labels =
-            HashSet::from(["__startup_tree_stage_zujxzB_0", "__startup_tree_stage_ql3QHx_0"]);
+            HashSet::from(["__startup_tree_zujxzB_layer_0", "__startup_tree_ql3QHx_layer_0"]);
         let actual_labels = HashSet::from_iter(get_app_startup_tree_labels(&app));
         assert_eq!(actual_labels, expected_labels);
     }
 
     mod e2e {
-        use bevy::{
-            app::{App, StartupStage},
-            core::CorePlugin,
-            ecs::system::{NonSendMut, Resource},
-        };
+        use bevy::prelude::*;
 
         use crate::{rng::reset_rng, startup_tree, AddStartupTree};
 
@@ -329,9 +331,9 @@ mod tests {
             reset_rng();
 
             let mut app = App::new();
-            app.add_plugin(CorePlugin::default());
+            app.add_plugin(TaskPoolPlugin::default());
             app.insert_non_send_resource(TestEventData(Vec::with_capacity(11)));
-            app.add_startup_system(begin);
+            app.add_startup_system(begin.in_base_set(StartupSet::PreStartup));
             app.add_startup_tree(startup_tree! {
                 sys_1_a => {
                     sys_2_a,
@@ -344,7 +346,7 @@ mod tests {
                 sys_1_c,
                 sys_1_d,
             });
-            app.add_startup_system_to_stage(StartupStage::PostStartup, end);
+            app.add_startup_system(end.in_base_set(StartupSet::PostStartup));
 
             app.update();
 

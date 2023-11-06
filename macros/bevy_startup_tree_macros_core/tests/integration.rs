@@ -181,20 +181,20 @@ fn tokenize_tree() {
     let expected = quote! {
         vec![
             ::std::vec![
-                ::bevy::prelude::IntoSystemDescriptor::into_descriptor(s1a),
-                ::bevy::prelude::IntoSystemDescriptor::into_descriptor(s1b)
+                ::bevy::prelude::IntoSystemConfig::into_config(s1a),
+                ::bevy::prelude::IntoSystemConfig::into_config(s1b)
             ],
             ::std::vec![
-                ::bevy::prelude::IntoSystemDescriptor::into_descriptor(s2a),
-                ::bevy::prelude::IntoSystemDescriptor::into_descriptor(s2b)
+                ::bevy::prelude::IntoSystemConfig::into_config(s2a),
+                ::bevy::prelude::IntoSystemConfig::into_config(s2b)
             ],
             ::std::vec![
-                ::bevy::prelude::IntoSystemDescriptor::into_descriptor(s3a),
-                ::bevy::prelude::IntoSystemDescriptor::into_descriptor(s3b),
-                ::bevy::prelude::IntoSystemDescriptor::into_descriptor(s3c)
+                ::bevy::prelude::IntoSystemConfig::into_config(s3a),
+                ::bevy::prelude::IntoSystemConfig::into_config(s3b),
+                ::bevy::prelude::IntoSystemConfig::into_config(s3c)
             ],
-            ::std::vec![::bevy::prelude::IntoSystemDescriptor::into_descriptor(s4a)],
-            ::std::vec![::bevy::prelude::IntoSystemDescriptor::into_descriptor(s5a)]
+            ::std::vec![::bevy::prelude::IntoSystemConfig::into_config(s4a)],
+            ::std::vec![::bevy::prelude::IntoSystemConfig::into_config(s5a)]
         ]
     }
     .to_string();
