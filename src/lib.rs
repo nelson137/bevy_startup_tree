@@ -139,6 +139,8 @@ use self::schedule::{AppExts, StartupTreeLayer};
 /// See the [module docs](crate) for more information.
 pub use bevy_startup_tree_macros::startup_tree;
 
+const NAMESPACE_LEN: usize = 6;
+
 /// An extension trait for [`bevy::app::App`][bevy App].
 ///
 /// [bevy App]: https://docs.rs/bevy/*/bevy/app/struct.App.html
@@ -167,7 +169,7 @@ impl AddStartupTree for App {
         I: IntoIterator<Item = SystemConfig>,
     {
         let mut rng = get_rng();
-        let namespace = Alphanumeric.sample_string(&mut rng, 6);
+        let namespace = Alphanumeric.sample_string(&mut rng, NAMESPACE_LEN);
         let label_base = format!("__startup_tree_{namespace}");
 
         let mut last_layer_set: Option<StartupTreeLayer> = None;
