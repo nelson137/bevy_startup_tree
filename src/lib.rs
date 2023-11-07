@@ -294,7 +294,7 @@ mod tests {
     mod e2e {
         use bevy::prelude::*;
 
-        use crate::{rng::reset_rng, startup_tree, AddStartupTree};
+        use crate::{rng::reseed_rng, startup_tree, AddStartupTree};
 
         #[derive(Resource, Debug)]
         struct TestEventData(Vec<TestEvent>);
@@ -330,7 +330,7 @@ mod tests {
 
         #[test]
         fn end_to_end_test() {
-            reset_rng();
+            reseed_rng();
 
             let mut app = App::new();
             app.add_plugin(TaskPoolPlugin::default());

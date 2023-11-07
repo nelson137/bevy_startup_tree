@@ -34,6 +34,10 @@ mod test_rng {
         TEST_RNG_INNER.with(|rng| *rng.borrow_mut() = StdRng::seed_from_u64(TEST_RNG_SEED));
     }
 
+    pub fn reseed_rng() {
+        TEST_RNG_INNER.with(|rng| *rng.borrow_mut() = StdRng::from_entropy());
+    }
+
     pub fn get_rng() -> impl Rng {
         TestRng(TEST_RNG_INNER.with(Rc::clone))
     }
