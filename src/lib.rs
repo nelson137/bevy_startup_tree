@@ -74,9 +74,8 @@
 //!
 //! fn main() {
 //!     App::new()
-//!         .add_plugin(TaskPoolPlugin::default())
-//!         .add_plugin(LogPlugin::default())
-//!         .add_startup_system(begin.in_base_set(StartupSet::Startup))
+//!         .add_plugins((TaskPoolPlugin::default(), LogPlugin::default()))
+//!         .add_systems(Startup, begin)
 //!         .add_startup_tree(startup_tree! {
 //!             sys_1_a,
 //!             sys_1_b => sys_2_a,
@@ -85,7 +84,7 @@
 //!                 sys_2_c => sys_3_a,
 //!             },
 //!         })
-//!         .add_startup_system(end.in_base_set(StartupSet::PostStartup))
+//!         .add_systems(PostStartup, end)
 //!         .run();
 //! }
 //!
@@ -129,10 +128,8 @@
 
 use std::fmt::Write;
 
-use bevy_app::{App, StartupSet};
-use bevy_ecs::schedule::{
-    apply_system_buffers, IntoSystemConfig, IntoSystemSetConfig, SystemConfig,
-};
+use bevy_app::{App, Startup};
+use bevy_ecs::schedule::{apply_deferred, IntoSystemConfigs, IntoSystemSetConfig, SystemConfigs};
 use rand::distributions::{Alphanumeric, DistString};
 
 mod rng;
@@ -165,14 +162,14 @@ pub trait AddStartupTree {
     fn add_startup_tree<I2, I>(&mut self, startup_tree: I2) -> &mut Self
     where
         I2: IntoIterator<Item = I>,
-        I: IntoIterator<Item = SystemConfig>;
+        I: IntoIterator<Item = SystemConfigs>;
 }
 
 impl AddStartupTree for App {
     fn add_startup_tree<I2, I>(&mut self, startup_tree: I2) -> &mut Self
     where
         I2: IntoIterator<Item = I>,
-        I: IntoIterator<Item = SystemConfig>,
+        I: IntoIterator<Item = SystemConfigs>,
     {
         let mut rng = get_rng();
         let namespace = Alphanumeric.sample_string(&mut rng, NAMESPACE_LEN);
@@ -187,20 +184,20 @@ impl AddStartupTree for App {
 
             let layer_set = StartupTreeLayer::Set(label);
 
-            let layer_config = layer_set.before(StartupSet::PostStartup);
-            self.configure_startup_set(if let Some(last_layer_set) = last_layer_set {
-                layer_config.after(last_layer_set)
+            let layer_config = if let Some(last_layer_set) = last_layer_set {
+                layer_set.after(last_layer_set)
             } else {
-                layer_config.after(StartupSet::StartupFlush)
-            });
+                layer_set.into_config()
+            };
+            self.configure_set(Startup, layer_config);
 
             for system in level {
-                self.add_startup_system(system.in_base_set(layer_set));
+                self.add_systems(Startup, system.in_set(layer_set));
             }
 
             let flush_set = StartupTreeLayer::Flush(label);
-            self.configure_startup_set(flush_set.after(layer_set).before(StartupSet::PostStartup));
-            self.add_startup_system(apply_system_buffers.in_base_set(flush_set));
+            self.configure_startup_set(flush_set.after(layer_set));
+            self.add_systems(Startup, apply_deferred.in_set(flush_set));
 
             last_layer_set = Some(flush_set);
         }
@@ -213,13 +210,13 @@ impl AddStartupTree for App {
 mod tests {
     use std::collections::HashSet;
 
-    use bevy::prelude::{App, CoreSchedule, Schedules};
+    use bevy::prelude::{App, Schedules, Startup};
 
     use crate::{rng::reset_rng, startup_tree, AddStartupTree, StartupTreeLayer};
 
     fn get_app_startup_tree_labels(app: &App) -> impl Iterator<Item = &'static str> + '_ {
         let schedules = app.world.resource::<Schedules>();
-        let startup_schedule = schedules.get(&CoreSchedule::Startup).expect("get startup schedule");
+        let startup_schedule = schedules.get(&Startup).expect("get startup schedule");
         let startup_graph = startup_schedule.graph();
 
         startup_graph.hierarchy().graph().nodes().filter_map(|id| {
@@ -339,9 +336,9 @@ mod tests {
             reseed_rng();
 
             let mut app = App::new();
-            app.add_plugin(TaskPoolPlugin::default());
+            app.add_plugins(TaskPoolPlugin::default());
             app.insert_non_send_resource(TestEventData(Vec::with_capacity(11)));
-            app.add_startup_system(begin.in_base_set(StartupSet::PreStartup));
+            app.add_systems(PreStartup, begin);
             app.add_startup_tree(startup_tree! {
                 sys_1_a => {
                     sys_2_a,
@@ -354,7 +351,7 @@ mod tests {
                 sys_1_c,
                 sys_1_d,
             });
-            app.add_startup_system(end.in_base_set(StartupSet::PostStartup));
+            app.add_systems(PostStartup, end);
 
             app.update();
 

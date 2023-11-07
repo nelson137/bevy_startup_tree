@@ -16,7 +16,7 @@ impl Node {
     pub fn as_into_descriptor_call(&self) -> TokenStream2 {
         let receiver = &self.0;
         quote! {
-            ::bevy::prelude::IntoSystemConfig::into_config(#receiver)
+            ::bevy::prelude::IntoSystemConfigs::into_configs(#receiver)
         }
     }
 }
@@ -61,7 +61,7 @@ mod tests {
     fn node_correctly_creates_the_into_descriptor_call() {
         let node = Node::new(path!(sys));
         let expected_call =
-            quote! { ::bevy::prelude::IntoSystemConfig::into_config(sys) }.to_string();
+            quote! { ::bevy::prelude::IntoSystemConfigs::into_configs(sys) }.to_string();
         let actual_call = node.as_into_descriptor_call().to_string();
         assert_eq!(actual_call, expected_call);
     }
