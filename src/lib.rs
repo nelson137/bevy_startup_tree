@@ -1,4 +1,4 @@
-//! Insert dependency trees of startup systems into [Bevy `App`s][bevy App].
+//! Insert dependency trees of startup systems into [Bevy `App`s][`App`].
 //!
 //! Define dependency trees of startup systems for a Bevy `App` with the [`startup_tree`] macro.
 //! Insert trees into an `App` with the [`AddStartupTree::add_startup_tree`] extension method. It is
@@ -18,7 +18,7 @@
 //! The systems that make up a startup tree, or nodes, are grouped by depth. The `startup_tree`
 //! macro generates a 2-D array where each row with index `i` contains the nodes at depth `i` in the
 //! tree. This 2-D array is consumed by `add_startup_tree` where each depth sub-array is combined
-//! into a [parallel `SystemStage`][`SystemStage::parallel`].
+//! into a [`SystemSet`].
 //!
 //! ```rust no_run
 //! # use bevy_startup_tree::startup_tree;
@@ -39,13 +39,21 @@
 //! [ [sys_1_a, sys_1_b], [sys_2] ]
 //! </pre>
 //!
-//! `add_startup_tree` inserts the tree after [`StartupStage::Startup`] so the stages of the startup
-//! phase run in the following order:
+//! The sets for each sub-array run in order, between the [`StartupSets`][`StartupSet`]
+//! `StartupFlush` and `PostStartup`. Additionally, each set has its own flush set that runs after
+//! it, containing only the [`apply_system_buffers`] system. The startup phase of an app with the
+//! above tree would be:
 //!
-//! - `StartupStage::PreStartup`
-//! - `StartupStage::Startup`
-//! - Tree stages...
-//! - `StartupStage::PostStartup`
+//! - `StartupSet::PreStartup`
+//! - `StartupSet::PreStartupFlush`
+//! - `StartupSet::Startup`
+//! - `StartupSet::StartupFlush`
+//! - Depth 0 tree set
+//! - Depth 0 tree flush set
+//! - Depth 1 tree set
+//! - Depth 1 tree flush set
+//! - `StartupSet::PostStartup`
+//! - `StartupSet::PostStartupFlush`
 //!
 //! # Example
 //!
@@ -99,14 +107,12 @@
 //! </pre>
 //!
 //! Note that all of the logs for a depth (those with the same number) are grouped together. This is
-//! because all of the systems at some depth in the tree are in the same stage. However, the logs
-//! within a stage run in no particular order because the stage is
-//! [parallel][`SystemStage::parallel`].
+//! because all of the systems at some depth in the tree are in the same set. The sets run in order,
+//! but the systems within them do not.
 //!
-//! The `begin` and `end` systems show when the tree runs during the startup phase. The tree's
-//! stages are inserted after `StartupStage::Startup` so any system added to
-//! `StartupStage::PreStartup` or `StartupStage::Startup` run before the tree and any system added
-//! to `StartupStage::PostStartup` run after the tree.
+//! The `begin` and `end` systems demonstrates when the tree runs during startup. To run a system
+//! before the tree, insert it into the `StartupSet::Startup` base set. To run a system after the
+//! tree, insert it into the `StartupSet::PostStartup` base set.
 //!
 //! # Bevy Compatibility
 //!
@@ -115,10 +121,10 @@
 //! `~0.9` | `>=0.1.2`
 //! `>=0.10` | N/A
 //!
-//! [bevy App]: https://docs.rs/bevy/*/bevy/app/struct.App.html
-//! [`SystemStage`]: https://docs.rs/bevy/~0.9/bevy/ecs/schedule/struct.SystemStage.html
-//! [`StartupStage::Startup`]: https://docs.rs/bevy/~0.9/bevy/app/enum.StartupStage.html
-//! [`SystemStage::parallel`]: https://docs.rs/bevy/~0.9/bevy/ecs/schedule/struct.SystemStage.html#method.parallel
+//! [`App`]: https://docs.rs/bevy/~0.10/bevy/app/struct.App.html
+//! [`apply_system_buffers`]: https://docs.rs/bevy/~0.10/bevy/ecs/schedule/fn.apply_system_buffers.html
+//! [`StartupSet`]: https://docs.rs/bevy/~0.10/bevy/app/enum.StartupSet.html
+//! [`SystemSet`]: https://docs.rs/bevy/~0.10/bevy/ecs/schedule/trait.SystemSet.html
 
 use std::fmt::Write;
 
@@ -141,21 +147,20 @@ pub use bevy_startup_tree_macros::startup_tree;
 
 const NAMESPACE_LEN: usize = 6;
 
-/// An extension trait for [`bevy::app::App`][bevy App].
+/// An extension trait for [`bevy::app::App`][`App`].
 ///
-/// [bevy App]: https://docs.rs/bevy/*/bevy/app/struct.App.html
+/// [`App`]: https://docs.rs/bevy/*/bevy/app/struct.App.html
 pub trait AddStartupTree {
-    /// Add a dependency tree of startup systems to the [Bevy `App`][bevy App] `&mut self`.
+    /// Add a dependency tree of startup systems to the [`App`].
     ///
     /// The input is an iterator over a 2-D array describing a tree where each row (inner iterator
-    /// `I`) with index `i` contains the nodes at depth `i` in the tree. Nodes at the same depth are
-    /// run in parallel and thus the order in which they will run is not guaranteed. It is strongly
-    /// recommended that the [`startup_tree` macro](startup_tree) is used to generate the tree.
+    /// `I`) with index `i` contains the nodes at depth `i` in the tree. There is *no guarantee*
+    /// that systems at the same depth with run in any specific order. It is strongly recommended
+    /// that the [`startup_tree` macro](startup_tree) is used to generate the tree.
     ///
     /// See the [module docs](crate) for more information.
     ///
-    /// [`SystemStage::parallel`]: https://docs.rs/bevy/~0.9/bevy/ecs/schedule/struct.SystemStage.html#method.parallel
-    /// [bevy App]: https://docs.rs/bevy/*/bevy/app/struct.App.html
+    /// [`App`]: https://docs.rs/bevy/*/bevy/app/struct.App.html
     fn add_startup_tree<I2, I>(&mut self, startup_tree: I2) -> &mut Self
     where
         I2: IntoIterator<Item = I>,
