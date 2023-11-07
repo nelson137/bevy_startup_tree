@@ -13,6 +13,13 @@
 //! that spawn children entities must run after the one that spawns the parent; this is where
 //! `bevy_startup_tree` becomes useful.
 //!
+//! # Bevy Compatibility
+//!
+//! `bevy` | `bevy_startup_tree`
+//! :--- | :---
+//! `~0.9` | `>=0.1.2`
+//! `>=0.10` | N/A
+//!
 //! # Behavior
 //!
 //! The systems that make up a startup tree, or nodes, are grouped by depth. The `startup_tree`
@@ -113,13 +120,6 @@
 //! The `begin` and `end` systems demonstrates when the tree runs during startup. To run a system
 //! before the tree, insert it into the `StartupSet::Startup` base set. To run a system after the
 //! tree, insert it into the `StartupSet::PostStartup` base set.
-//!
-//! # Bevy Compatibility
-//!
-//! `bevy` | `bevy_startup_tree`
-//! :--- | :---
-//! `~0.9` | `>=0.1.2`
-//! `>=0.10` | N/A
 //!
 //! [`App`]: https://docs.rs/bevy/~0.10/bevy/app/struct.App.html
 //! [`apply_system_buffers`]: https://docs.rs/bevy/~0.10/bevy/ecs/schedule/fn.apply_system_buffers.html
