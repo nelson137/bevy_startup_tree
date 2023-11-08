@@ -47,21 +47,17 @@
 //! [ [sys_1_a, sys_1_b], [sys_2] ]
 //! </pre>
 //!
-//! The sets for each sub-array run in order, between the [`StartupSets`][`StartupSet`]
-//! `StartupFlush` and `PostStartup`. Additionally, each set has its own flush set that runs after
-//! it, containing only the [`apply_system_buffers`] system. The startup phase of an app with the
-//! above tree would be:
+//! Note that there are two sub-arrays: one for the nodes at depth 0 and one for depth 1.
 //!
-//! - `StartupSet::PreStartup`
-//! - `StartupSet::PreStartupFlush`
-//! - `StartupSet::Startup`
-//! - `StartupSet::StartupFlush`
+//! The sets for each sub-array run in order during the [`Startup` schedule][`Startup`].
+//! Additionally, each set has its own flush set that runs after it, containing only the
+//! [`apply_deferred` system][`apply_deferred`]. Thus, the system sets inserted into the `Startup`
+//! schedule for the above tree would be:
+//!
 //! - Depth 0 tree set
 //! - Depth 0 tree flush set
 //! - Depth 1 tree set
 //! - Depth 1 tree flush set
-//! - `StartupSet::PostStartup`
-//! - `StartupSet::PostStartupFlush`
 //!
 //! # Example
 //!
@@ -75,7 +71,7 @@
 //! fn main() {
 //!     App::new()
 //!         .add_plugins((TaskPoolPlugin::default(), LogPlugin::default()))
-//!         .add_systems(Startup, begin)
+//!         .add_systems(PreStartup, begin)
 //!         .add_startup_tree(startup_tree! {
 //!             sys_1_a,
 //!             sys_1_b => sys_2_a,
@@ -113,18 +109,21 @@
 //! 2023-01-08T19:38:41.665264Z  INFO example_app: [End]
 //! </pre>
 //!
-//! Note that all of the logs for a depth (those with the same number) are grouped together. This is
-//! because all of the systems at some depth in the tree are in the same set. The sets run in order,
-//! but the systems within them do not.
+//! Note that all of the logs for a depth (those with the same number) are grouped together because
+//! these systems belong to the same set. The sets run in order, causing the numbers to be sorted.
+//! However, the systems within a set do not, causing the letters for a given number to be
+//! unordered.
 //!
 //! The `begin` and `end` systems demonstrates when the tree runs during startup. To run a system
-//! before the tree, insert it into the `StartupSet::Startup` base set. To run a system after the
-//! tree, insert it into the `StartupSet::PostStartup` base set.
+//! before the tree, insert it into the [`PreStartup` schedule][`PreStartup`]. To run a system after
+//! the tree, insert it into the [`PostStartup` schedule][`PostStartup`].
 //!
-//! [`App`]: https://docs.rs/bevy/~0.10/bevy/app/struct.App.html
-//! [`apply_system_buffers`]: https://docs.rs/bevy/~0.10/bevy/ecs/schedule/fn.apply_system_buffers.html
-//! [`StartupSet`]: https://docs.rs/bevy/~0.10/bevy/app/enum.StartupSet.html
-//! [`SystemSet`]: https://docs.rs/bevy/~0.10/bevy/ecs/schedule/trait.SystemSet.html
+//! [`App`]: https://docs.rs/bevy/~0.11/bevy/app/struct.App.html
+//! [`apply_deferred`]: https://docs.rs/bevy/~0.11/bevy/ecs/schedule/fn.apply_deferred.html
+//! [`PostStartup`]: https://docs.rs/bevy/~0.11/bevy/app/struct.PostStartup.html
+//! [`PreStartup`]: https://docs.rs/bevy/~0.11/bevy/app/struct.PreStartup.html
+//! [`Startup`]: https://docs.rs/bevy/~0.11/bevy/app/struct.Startup.html
+//! [`SystemSet`]: https://docs.rs/bevy/~0.11/bevy/ecs/schedule/trait.SystemSet.html
 
 use std::fmt::Write;
 
@@ -147,7 +146,7 @@ const NAMESPACE_LEN: usize = 6;
 
 /// An extension trait for [`bevy::app::App`][`App`].
 ///
-/// [`App`]: https://docs.rs/bevy/*/bevy/app/struct.App.html
+/// [`App`]: https://docs.rs/bevy/~0.11/bevy/app/struct.App.html
 pub trait AddStartupTree {
     /// Add a dependency tree of startup systems to the [`App`].
     ///
@@ -158,7 +157,7 @@ pub trait AddStartupTree {
     ///
     /// See the [module docs](crate) for more information.
     ///
-    /// [`App`]: https://docs.rs/bevy/*/bevy/app/struct.App.html
+    /// [`App`]: https://docs.rs/bevy/~0.11/bevy/app/struct.App.html
     fn add_startup_tree<I2, I>(&mut self, startup_tree: I2) -> &mut Self
     where
         I2: IntoIterator<Item = I>,
