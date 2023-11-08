@@ -14,4 +14,4 @@ proc-macro = true
 [dependencies]
 bevy_startup_tree_macros_core = { version = "0.2.0", path = "../bevy_startup_tree_macros_core" }
 quote = "1.0"
-syn = "1.0"
+syn = "2.0"
