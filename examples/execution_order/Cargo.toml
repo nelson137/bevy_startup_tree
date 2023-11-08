@@ -1,5 +1,5 @@
 [package]
-name = "usage"
+name = "execution_order_example"
 version = "0.2.0"
 edition = "2021"
 

@@ -1506,6 +1506,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0206175f82b8d6bf6652ff7d71a1e27fd2e4efde587fd368662814d6ec1d9ce0"
 
 [[package]]
+name = "execution_order_example"
+version = "0.2.0"
+dependencies = [
+ "bevy",
+ "bevy_startup_tree",
+]
+
+[[package]]
 name = "fastrand"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3218,14 +3226,6 @@ name = "unicode-xid"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f962df74c8c05a667b5ee8bcf162993134c104e96440b663c8daa176dc772d8c"
-
-[[package]]
-name = "usage"
-version = "0.2.0"
-dependencies = [
- "bevy",
- "bevy_startup_tree",
-]
 
 [[package]]
 name = "uuid"
