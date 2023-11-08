@@ -146,18 +146,21 @@ fn spawn_right_panel_content(
 
     // List with hidden overflow
     let list_entity = commands
-        .spawn(NodeBundle {
-            style: Style {
-                flex_direction: FlexDirection::Column,
-                align_self: AlignSelf::Center,
-                width: Val::Percent(100.0),
-                height: Val::Percent(50.0),
-                overflow: Overflow::clip_y(),
+        .spawn((
+            ScrollingListViewport,
+            NodeBundle {
+                style: Style {
+                    flex_direction: FlexDirection::Column,
+                    align_self: AlignSelf::Center,
+                    width: Val::Percent(100.0),
+                    height: Val::Percent(50.0),
+                    overflow: Overflow::clip_y(),
+                    ..default()
+                },
+                background_color: Color::rgb(0.10, 0.10, 0.10).into(),
                 ..default()
             },
-            background_color: Color::rgb(0.10, 0.10, 0.10).into(),
-            ..default()
-        })
+        ))
         .with_children(|parent| {
             // Moving panel
             parent
@@ -336,6 +339,9 @@ fn spawn_middle_content(
     ]);
 }
 
+#[derive(Component)]
+struct ScrollingListViewport;
+
 #[derive(Component, Default)]
 struct ScrollingList {
     position: f32,
@@ -343,15 +349,16 @@ struct ScrollingList {
 
 fn mouse_scroll(
     mut mouse_wheel_events: EventReader<MouseWheel>,
-    mut query_list: Query<(&mut ScrollingList, &mut Style, &Children, &Node)>,
+    query_list_viewport: Query<&Node, With<ScrollingListViewport>>,
+    mut query_list: Query<(&mut ScrollingList, &mut Style, &Children)>,
     query_item: Query<&Node>,
 ) {
+    let viewport_height = query_list_viewport.single().size().y;
     for mouse_wheel_event in mouse_wheel_events.iter() {
-        for (mut scrolling_list, mut style, children, uinode) in &mut query_list {
+        for (mut scrolling_list, mut style, children) in &mut query_list {
             let items_height: f32 =
                 children.iter().map(|entity| query_item.get(*entity).unwrap().size().y).sum();
-            let panel_height = uinode.size().y;
-            let max_scroll = (items_height - panel_height).max(0.);
+            let max_scroll = (items_height - viewport_height).max(0.);
             let dy = match mouse_wheel_event.unit {
                 MouseScrollUnit::Line => mouse_wheel_event.y * 20.,
                 MouseScrollUnit::Pixel => mouse_wheel_event.y,
