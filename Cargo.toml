@@ -14,12 +14,12 @@ exclude = ["examples/*"]
 members = ["macros/*", "examples/*"]
 
 [dependencies]
-bevy_app = "0.11"
-bevy_ecs = "0.11"
+bevy_app = "0.12"
+bevy_ecs = "0.12"
 bevy_startup_tree_macros = { version = "0.3.0", path = "./macros/bevy_startup_tree_macros" }
 itertools = "0.11"
 rand = "0.8.5"
 
 [dev-dependencies]
-bevy = { version = "0.11", default-features = false }
+bevy = { version = "0.12", default-features = false }
 delegate = "0.10.0"

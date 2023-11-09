@@ -354,7 +354,7 @@ fn mouse_scroll(
     query_item: Query<&Node>,
 ) {
     let viewport_height = query_list_viewport.single().size().y;
-    for mouse_wheel_event in mouse_wheel_events.iter() {
+    for mouse_wheel_event in mouse_wheel_events.read() {
         for (mut scrolling_list, mut style, children) in &mut query_list {
             let items_height: f32 =
                 children.iter().map(|entity| query_item.get(*entity).unwrap().size().y).sum();

@@ -129,7 +129,7 @@
 use std::fmt::Write;
 
 use bevy_app::{App, Startup};
-use bevy_ecs::schedule::{apply_deferred, IntoSystemConfigs, IntoSystemSetConfig, SystemConfigs};
+use bevy_ecs::schedule::{apply_deferred, IntoSystemConfigs, IntoSystemSetConfigs, SystemConfigs};
 use rand::distributions::{Alphanumeric, DistString};
 
 mod rng;
@@ -187,9 +187,9 @@ impl AddStartupTree for App {
             let layer_config = if let Some(last_layer_set) = last_layer_set {
                 layer_set.after(last_layer_set)
             } else {
-                layer_set.into_config()
+                layer_set.into_configs()
             };
-            self.configure_set(Startup, layer_config);
+            self.configure_sets(Startup, layer_config);
 
             for system in level {
                 self.add_systems(Startup, system.in_set(layer_set));
@@ -212,20 +212,20 @@ mod tests {
 
     use bevy::prelude::{App, Schedules, Startup};
 
-    use crate::{rng::reset_rng, startup_tree, AddStartupTree, StartupTreeLayer};
+    use crate::{rng::reset_rng, startup_tree, AddStartupTree};
 
-    fn get_app_startup_tree_labels(app: &App) -> impl Iterator<Item = &'static str> + '_ {
+    fn get_app_startup_tree_labels(app: &App) -> impl Iterator<Item = String> + '_ {
         let schedules = app.world.resource::<Schedules>();
-        let startup_schedule = schedules.get(&Startup).expect("get startup schedule");
+        let startup_schedule = schedules.get(Startup).expect("get startup schedule");
         let startup_graph = startup_schedule.graph();
 
-        startup_graph.hierarchy().graph().nodes().filter_map(|id| {
-            startup_graph
-                .get_set_at(id)
-                .and_then(|set| set.as_any().downcast_ref::<StartupTreeLayer>())
-                .copied()
-                .and_then(StartupTreeLayer::set_label)
-        })
+        startup_graph
+            .hierarchy()
+            .graph()
+            .nodes()
+            .filter_map(|id| startup_graph.get_set_at(id))
+            .map(|set| format!("{set:#?}"))
+            .filter(|label| label.starts_with("__startup_tree"))
     }
 
     fn system() {}
@@ -243,9 +243,9 @@ mod tests {
         });
 
         let expected_labels = HashSet::from([
-            "__startup_tree_zujxzB_layer_0",
-            "__startup_tree_zujxzB_layer_1",
-            "__startup_tree_zujxzB_layer_2",
+            "__startup_tree_zujxzB_layer_0".into(),
+            "__startup_tree_zujxzB_layer_1".into(),
+            "__startup_tree_zujxzB_layer_2".into(),
         ]);
         let actual_labels = HashSet::from_iter(get_app_startup_tree_labels(&app));
         assert_eq!(actual_labels, expected_labels);
@@ -270,10 +270,10 @@ mod tests {
         });
 
         let expected_labels = HashSet::from([
-            "__startup_tree_zujxzB_layer_0",
-            "__startup_tree_zujxzB_layer_1",
-            "__startup_tree_zujxzB_layer_2",
-            "__startup_tree_zujxzB_layer_3",
+            "__startup_tree_zujxzB_layer_0".into(),
+            "__startup_tree_zujxzB_layer_1".into(),
+            "__startup_tree_zujxzB_layer_2".into(),
+            "__startup_tree_zujxzB_layer_3".into(),
         ]);
         let actual_labels = HashSet::from_iter(get_app_startup_tree_labels(&app));
         assert_eq!(actual_labels, expected_labels);
@@ -288,8 +288,10 @@ mod tests {
         app.add_startup_tree(startup_tree! { system });
         app.add_startup_tree(startup_tree! { system });
 
-        let expected_labels =
-            HashSet::from(["__startup_tree_zujxzB_layer_0", "__startup_tree_ql3QHx_layer_0"]);
+        let expected_labels = HashSet::from([
+            "__startup_tree_zujxzB_layer_0".into(),
+            "__startup_tree_ql3QHx_layer_0".into(),
+        ]);
         let actual_labels = HashSet::from_iter(get_app_startup_tree_labels(&app));
         assert_eq!(actual_labels, expected_labels);
     }
