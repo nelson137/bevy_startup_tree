@@ -66,7 +66,7 @@ fn parse_complex_tree() -> syn::Result<()> {
 fn parse_tree_branches_and_commas() -> syn::Result<()> {
     let cases = [
         (quote! { sys1 }, Ok(Tree::from(path!(sys1)))),
-        (quote! { sys2, }, Ok(Tree::from_branches(vec![Branch::from(path!(sys2))], true))),
+        (quote! { sys2, }, Ok(Tree::from_branch(Branch::from(path!(sys2)), true))),
         (quote! { sys3 => }, Err("unexpected end of input, expected identifier")),
         (
             quote! { sys4 => child },
