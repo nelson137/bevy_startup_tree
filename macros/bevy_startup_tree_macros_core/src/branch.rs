@@ -58,8 +58,6 @@ impl std::fmt::Debug for Branch {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         #[derive(Debug)]
         struct FatArrow;
-        #[derive(Debug)]
-        struct Comma;
         f.debug_struct("Branch")
             .field("node", &self.node)
             .field("child", &self.child.as_ref().map(|(_, child)| (FatArrow, child)))
