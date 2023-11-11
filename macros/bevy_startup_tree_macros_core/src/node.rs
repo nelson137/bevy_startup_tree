@@ -2,15 +2,15 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::{quote, ToTokens};
 use syn::{
     parse::{Parse, ParseStream},
-    ExprPath, Path, Result,
+    Expr, ExprPath, Path, Result,
 };
 
 #[derive(PartialEq)]
-pub struct Node(ExprPath);
+pub struct Node(Expr);
 
 impl Node {
-    pub fn new(path: Path) -> Self {
-        Self(ExprPath { attrs: Vec::new(), qself: None, path })
+    pub fn new(expr: Expr) -> Self {
+        Self(expr)
     }
 
     pub fn as_into_descriptor_call(&self) -> TokenStream2 {
@@ -18,6 +18,12 @@ impl Node {
         quote! {
             ::bevy::prelude::IntoSystemConfigs::into_configs(#receiver)
         }
+    }
+}
+
+impl From<Path> for Node {
+    fn from(path: Path) -> Self {
+        Node::new(Expr::Path(ExprPath { attrs: Vec::new(), qself: None, path }))
     }
 }
 

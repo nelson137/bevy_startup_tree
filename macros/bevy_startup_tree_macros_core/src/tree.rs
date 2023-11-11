@@ -107,6 +107,10 @@ impl Tree {
         Self::from_branches(vec![branch], trailing_comma)
     }
 
+    pub fn from_node(node: Node, trailing_comma: bool) -> Self {
+        Self::from_branch(Branch::Leaf(node), trailing_comma)
+    }
+
     pub fn from_path(path: Path, trailing_comma: bool) -> Self {
         Self::from_branch(path.into(), trailing_comma)
     }
@@ -135,6 +139,12 @@ impl<B: Into<Branch>> FromIterator<B> for Tree {
 impl From<Branch> for Tree {
     fn from(branch: Branch) -> Self {
         Self::from_branch(branch, false)
+    }
+}
+
+impl From<Node> for Tree {
+    fn from(node: Node) -> Self {
+        Self::from_node(node, false)
     }
 }
 

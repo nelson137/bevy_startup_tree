@@ -43,7 +43,7 @@ impl Branch {
 
 impl From<Path> for Branch {
     fn from(path: Path) -> Self {
-        Self::leaf(Node::new(path))
+        Self::leaf(Node::from(path))
     }
 }
 
