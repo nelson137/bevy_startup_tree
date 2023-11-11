@@ -1,4 +1,4 @@
-use bevy_startup_tree_macros_core::{Branch, Node, NodeChild, StartupTree, Tree, TreeDepth};
+use bevy_startup_tree_macros_core::{Branch, Node, StartupTree, Tree, TreeDepth};
 use quote::quote;
 use syn::parse2;
 
@@ -16,12 +16,9 @@ fn parse_tree_with_one_node() -> syn::Result<()> {
 #[test]
 fn parse_tree_with_long_branch() -> syn::Result<()> {
     let tree: Tree = parse2(quote! { sys1 => sys2 => sys3 })?;
-    let expected = Tree::from(Branch::new(
+    let expected = Tree::from(Branch::arm(
         Node::new(path!(sys1)),
-        Some(NodeChild::branch(Branch::new(
-            Node::new(path!(sys2)),
-            Some(NodeChild::branch(Branch::from(path!(sys3)))),
-        ))),
+        Branch::arm(Node::new(path!(sys2)), Branch::from(path!(sys3))),
     ));
     assert_eq!(tree, expected);
     Ok(())
@@ -30,19 +27,13 @@ fn parse_tree_with_long_branch() -> syn::Result<()> {
 #[test]
 fn parse_complex_tree() -> syn::Result<()> {
     let expected = Tree::from_iter([
-        Branch::from_path(path!(s1a)),
-        Branch::new(
+        Branch::from(path!(s1a)),
+        Branch::tree(
             Node::new(path!(s1b)),
-            Some(NodeChild::Tree(Tree::from_iter([
-                Branch::new(
-                    Node::new(path!(s2a)),
-                    Some(NodeChild::branch(Branch::from_path(path!(s3a)))),
-                ),
-                Branch::new(
-                    Node::new(path!(s2b)),
-                    Some(NodeChild::Tree(Tree::from_iter([path!(s3b), path!(s3c)]))),
-                ),
-            ]))),
+            Tree::from_iter([
+                Branch::arm(Node::new(path!(s2a)), Branch::from(path!(s3a))),
+                Branch::tree(Node::new(path!(s2b)), Tree::from_iter([path!(s3b), path!(s3c)])),
+            ]),
         ),
     ]);
 
@@ -71,32 +62,23 @@ fn parse_tree_branches_and_commas() -> syn::Result<()> {
         (
             quote! { sys4 => child },
             Ok(Tree::from_branch(
-                Branch::new(
-                    Node::new(path!(sys4)),
-                    Some(NodeChild::branch(Branch::from_path(path!(child)))),
-                ),
+                Branch::arm(Node::new(path!(sys4)), Branch::from(path!(child))),
                 false,
             )),
         ),
         (
             quote! { sys5 => child, },
             Ok(Tree::from_branch(
-                Branch::new(
-                    Node::new(path!(sys5)),
-                    Some(NodeChild::branch(Branch::from_path(path!(child)))),
-                ),
+                Branch::arm(Node::new(path!(sys5)), Branch::from(path!(child))),
                 true,
             )),
         ),
         (
             quote! { sys6 => child1 => child2 },
             Ok(Tree::from_branch(
-                Branch::new(
+                Branch::arm(
                     Node::new(path!(sys6)),
-                    Some(NodeChild::branch(Branch::new(
-                        Node::new(path!(child1)),
-                        Some(NodeChild::branch(Branch::from_path(path!(child2)))),
-                    ))),
+                    Branch::arm(Node::new(path!(child1)), Branch::from(path!(child2))),
                 ),
                 false,
             )),
@@ -104,12 +86,9 @@ fn parse_tree_branches_and_commas() -> syn::Result<()> {
         (
             quote! { sys7 => child1 => child2, },
             Ok(Tree::from_branch(
-                Branch::new(
+                Branch::arm(
                     Node::new(path!(sys7)),
-                    Some(NodeChild::branch(Branch::new(
-                        Node::new(path!(child1)),
-                        Some(NodeChild::branch(Branch::from_path(path!(child2)))),
-                    ))),
+                    Branch::arm(Node::new(path!(child1)), Branch::from(path!(child2))),
                 ),
                 true,
             )),
@@ -117,30 +96,21 @@ fn parse_tree_branches_and_commas() -> syn::Result<()> {
         (
             quote! { sys8 => { child } },
             Ok(Tree::from_branch(
-                Branch::new(
-                    Node::new(path!(sys8)),
-                    Some(NodeChild::Tree(Tree::from_path(path!(child), false))),
-                ),
+                Branch::tree(Node::new(path!(sys8)), Tree::from_path(path!(child), false)),
                 false,
             )),
         ),
         (
             quote! { sys9 => { child }, },
             Ok(Tree::from_branch(
-                Branch::new(
-                    Node::new(path!(sys9)),
-                    Some(NodeChild::Tree(Tree::from_path(path!(child), false))),
-                ),
+                Branch::tree(Node::new(path!(sys9)), Tree::from_path(path!(child), false)),
                 true,
             )),
         ),
         (
             quote! { sys10 => { child, }, },
             Ok(Tree::from_branch(
-                Branch::new(
-                    Node::new(path!(sys10)),
-                    Some(NodeChild::Tree(Tree::from_path(path!(child), true))),
-                ),
+                Branch::tree(Node::new(path!(sys10)), Tree::from_path(path!(child), true)),
                 true,
             )),
         ),
@@ -149,7 +119,7 @@ fn parse_tree_branches_and_commas() -> syn::Result<()> {
         (
             quote! { sys13a => child, sys13b },
             Ok(Tree::from_iter([
-                Branch::new(Node::new(path!(sys13a)), Some(NodeChild::branch(path!(child).into()))),
+                Branch::arm(Node::new(path!(sys13a)), path!(child).into()),
                 Branch::from(path!(sys13b)),
             ])),
         ),
@@ -221,8 +191,8 @@ fn calculate_tree_depth() {
         depth += 1;
         tree.branches
             .iter()
-            .map(|branch| match &branch.child {
-                Some((_, NodeChild::Tree(subtree))) => {
+            .map(|branch| match branch {
+                Branch::Tree(_, _, subtree) => {
                     D::Tree(depth, get_tree_depths_inner(subtree, depth))
                 }
                 _ => D::Value(depth),
@@ -254,25 +224,22 @@ fn calculate_tree_depth() {
     let mut actual = Tree::new(
         TreeDepth::default(),
         vec![
-            Branch::from_path(path!(s1a)),
-            Branch::new(
+            Branch::from(path!(s1a)),
+            Branch::tree(
                 Node::new(path!(s1b)),
-                Some(NodeChild::Tree(Tree::new(
+                Tree::new(
                     TreeDepth::default(),
                     vec![
-                        Branch::from_path(path!(s2a)),
-                        Branch::new(
+                        Branch::from(path!(s2a)),
+                        Branch::tree(
                             Node::new(path!(s2b)),
-                            Some(NodeChild::Tree(Tree::new(
+                            Tree::new(
                                 TreeDepth::default(),
-                                vec![Branch::new(
-                                    Node::new(path!(s3a)),
-                                    Some(NodeChild::branch(Branch::from(path!(s4a)))),
-                                )],
-                            ))),
+                                vec![Branch::arm(Node::new(path!(s3a)), Branch::from(path!(s4a)))],
+                            ),
                         ),
                     ],
-                ))),
+                ),
             ),
         ],
     );

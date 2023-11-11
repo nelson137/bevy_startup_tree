@@ -9,7 +9,7 @@ use syn::{
     Error, Macro, MacroDelimiter, Path, PathSegment, Result, Token,
 };
 
-use crate::{Branch, Node, NodeChild};
+use crate::{Branch, Node};
 
 pub struct StartupTree(Tree);
 
@@ -67,16 +67,15 @@ fn tree_to_levels_impl<'tree>(
 ) {
     fn push_branch<'tree>(levels: &mut Vec<Vec<&'tree Node>>, branch: &'tree Branch, depth: usize) {
         if depth >= levels.len() {
-            levels.push(vec![&branch.node]);
+            levels.push(vec![branch.node()]);
         } else {
-            levels[depth].push(&branch.node);
+            levels[depth].push(branch.node());
         }
 
-        if let Some((_, child)) = &branch.child {
-            match child {
-                NodeChild::Branch(b) => push_branch(levels, b, depth + 1),
-                NodeChild::Tree(t) => tree_to_levels_impl(levels, t, depth + 1),
-            }
+        match branch {
+            Branch::Arm(_, _, b) => push_branch(levels, b, depth + 1),
+            Branch::Tree(_, _, t) => tree_to_levels_impl(levels, t, depth + 1),
+            Branch::Leaf(_) => {}
         }
     }
 
@@ -109,13 +108,13 @@ impl Tree {
     }
 
     pub fn from_path(path: Path, trailing_comma: bool) -> Self {
-        Self::from_branch(Branch::from_path(path), trailing_comma)
+        Self::from_branch(path.into(), trailing_comma)
     }
 
     fn _calculate_depths_impl(this: &mut Self, depth: TreeDepth) {
         this.depth = depth;
         for branch in &mut this.branches {
-            if let Some((_, NodeChild::Tree(b_child_tree))) = branch.child.as_mut() {
+            if let Some(b_child_tree) = branch.sub_tree_mut() {
                 Self::_calculate_depths_impl(b_child_tree, depth + 1);
             }
         }
