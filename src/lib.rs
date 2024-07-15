@@ -52,10 +52,8 @@
 //!
 //! Note that there are two sub-arrays: one for the nodes at depth 0 and one for depth 1.
 //!
-//! The sets for each sub-array run in order during the [`Startup` schedule][`Startup`].
-//! Additionally, each set has its own flush set that runs after it, containing only the
-//! [`apply_deferred` system][`apply_deferred`]. Thus, the system sets inserted into the `Startup`
-//! schedule for the above tree would be:
+//! The sets for each sub-array run in order during the [`Startup` schedule][`Startup`]. Thus, the
+//! system sets inserted into the `Startup` schedule for the above tree would be:
 //!
 //! - Depth 0 tree set
 //! - Depth 0 tree flush set
@@ -122,7 +120,6 @@
 //! the tree, insert it into the [`PostStartup` schedule][`PostStartup`].
 //!
 //! [`App`]: https://docs.rs/bevy/~0.12/bevy/app/struct.App.html
-//! [`apply_deferred`]: https://docs.rs/bevy/~0.12/bevy/ecs/schedule/fn.apply_deferred.html
 //! [`PostStartup`]: https://docs.rs/bevy/~0.12/bevy/app/struct.PostStartup.html
 //! [`PreStartup`]: https://docs.rs/bevy/~0.12/bevy/app/struct.PreStartup.html
 //! [`Startup`]: https://docs.rs/bevy/~0.12/bevy/app/struct.Startup.html
@@ -131,14 +128,14 @@
 use std::fmt::Write;
 
 use bevy_app::{App, Startup};
-use bevy_ecs::schedule::{apply_deferred, IntoSystemConfigs, IntoSystemSetConfigs, SystemConfigs};
+use bevy_ecs::schedule::{IntoSystemConfigs, IntoSystemSetConfigs, SystemConfigs};
 use rand::distributions::{Alphanumeric, DistString};
 
 mod rng;
 mod schedule;
 
 use self::rng::get_rng;
-use self::schedule::{AppExts, StartupTreeLayer};
+use self::schedule::StartupTreeLayer;
 
 /// Generate a tree of startup systems that can be consumed by [`AddStartupTree::add_startup_tree`].
 ///
@@ -177,14 +174,12 @@ impl AddStartupTree for App {
         let namespace = Alphanumeric.sample_string(&mut rng, NAMESPACE_LEN);
         let label_base = format!("__startup_tree_{namespace}");
 
-        let mut last_layer_set: Option<StartupTreeLayer> = None;
-
-        for (i, level) in startup_tree.into_iter().enumerate() {
+        startup_tree.into_iter().enumerate().fold(None, |last_layer_set, (i, level)| {
             let mut label = label_base.clone();
             write!(label, "_layer_{i}").unwrap();
             let label: &str = label.leak();
 
-            let layer_set = StartupTreeLayer::Set(label);
+            let layer_set = StartupTreeLayer(label);
 
             let layer_config = if let Some(last_layer_set) = last_layer_set {
                 layer_set.after(last_layer_set)
@@ -197,12 +192,8 @@ impl AddStartupTree for App {
                 self.add_systems(Startup, system.in_set(layer_set));
             }
 
-            let flush_set = StartupTreeLayer::Flush(label);
-            self.configure_startup_set(flush_set.after(layer_set));
-            self.add_systems(Startup, apply_deferred.in_set(flush_set));
-
-            last_layer_set = Some(flush_set);
-        }
+            Some(layer_set)
+        });
 
         self
     }
