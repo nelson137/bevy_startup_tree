@@ -1,6 +1,6 @@
 [package]
 name = "bevy_startup_tree_macros"
-version = "0.5.0"
+version = "0.5.1"
 edition = "2021"
 description = "procedural macros for bevy_startup_tree"
 documentation = "https://docs.rs/bevy_startup_tree_macros"
@@ -12,6 +12,6 @@ license = "MIT OR Apache-2.0"
 proc-macro = true
 
 [dependencies]
-bevy_startup_tree_macros_core = { version = "0.5.0", path = "../bevy_startup_tree_macros_core" }
+bevy_startup_tree_macros_core = { version = "0.5.1", path = "../bevy_startup_tree_macros_core" }
 quote = "1.0"
 syn = "2.0"
