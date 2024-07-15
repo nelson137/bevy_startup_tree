@@ -17,9 +17,9 @@ members = ["macros/*", "examples/*"]
 bevy_app = "0.14"
 bevy_ecs = "0.14"
 bevy_startup_tree_macros = { version = "0.5.1", path = "./macros/bevy_startup_tree_macros" }
-itertools = "0.11"
+itertools = "0.13"
 rand = "0.8.5"
 
 [dev-dependencies]
 bevy = { version = "0.14", default-features = false }
-delegate = "0.10.0"
+delegate = "0.12"
