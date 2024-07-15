@@ -208,7 +208,7 @@ mod tests {
     use crate::{rng::reset_rng, startup_tree, AddStartupTree};
 
     fn get_app_startup_tree_labels(app: &App) -> impl Iterator<Item = String> + '_ {
-        let schedules = app.world.resource::<Schedules>();
+        let schedules = app.world().resource::<Schedules>();
         let startup_schedule = schedules.get(Startup).expect("get startup schedule");
         let startup_graph = startup_schedule.graph();
 
@@ -362,7 +362,7 @@ mod tests {
             app.update();
 
             assert_eq!(
-                app.world.non_send_resource::<TestEventData>().0,
+                app.world().non_send_resource::<TestEventData>().0,
                 &[
                     TestEvent::Begin,
                     TestEvent::One,
