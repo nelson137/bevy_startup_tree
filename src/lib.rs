@@ -119,11 +119,11 @@
 //! before the tree, insert it into the [`PreStartup` schedule][`PreStartup`]. To run a system after
 //! the tree, insert it into the [`PostStartup` schedule][`PostStartup`].
 //!
-//! [`App`]: https://docs.rs/bevy/~0.12/bevy/app/struct.App.html
-//! [`PostStartup`]: https://docs.rs/bevy/~0.12/bevy/app/struct.PostStartup.html
-//! [`PreStartup`]: https://docs.rs/bevy/~0.12/bevy/app/struct.PreStartup.html
-//! [`Startup`]: https://docs.rs/bevy/~0.12/bevy/app/struct.Startup.html
-//! [`SystemSet`]: https://docs.rs/bevy/~0.12/bevy/ecs/schedule/trait.SystemSet.html
+//! [`App`]: https://docs.rs/bevy/~0.13/bevy/app/struct.App.html
+//! [`PostStartup`]: https://docs.rs/bevy/~0.13/bevy/app/struct.PostStartup.html
+//! [`PreStartup`]: https://docs.rs/bevy/~0.13/bevy/app/struct.PreStartup.html
+//! [`Startup`]: https://docs.rs/bevy/~0.13/bevy/app/struct.Startup.html
+//! [`SystemSet`]: https://docs.rs/bevy/~0.13/bevy/ecs/schedule/trait.SystemSet.html
 
 use std::fmt::Write;
 
@@ -146,7 +146,7 @@ const NAMESPACE_LEN: usize = 6;
 
 /// An extension trait for [`bevy::app::App`][`App`].
 ///
-/// [`App`]: https://docs.rs/bevy/~0.12/bevy/app/struct.App.html
+/// [`App`]: https://docs.rs/bevy/~0.13/bevy/app/struct.App.html
 pub trait AddStartupTree {
     /// Add a dependency tree of startup systems to the [`App`].
     ///
@@ -157,7 +157,7 @@ pub trait AddStartupTree {
     ///
     /// See the [module docs](crate) for more information.
     ///
-    /// [`App`]: https://docs.rs/bevy/~0.12/bevy/app/struct.App.html
+    /// [`App`]: https://docs.rs/bevy/~0.13/bevy/app/struct.App.html
     fn add_startup_tree<I2, I>(&mut self, startup_tree: I2) -> &mut Self
     where
         I2: IntoIterator<Item = I>,
