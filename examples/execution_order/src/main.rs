@@ -23,46 +23,19 @@ fn main() {
         .run();
 }
 
-fn begin() {
-    info!("[Begin]");
+#[rustfmt::skip]
+mod systems {
+    use bevy::log::info;
+    pub fn begin()   { info!("[Begin]"); }
+    pub fn sys_1_a() { info!("1.a");     }
+    pub fn sys_1_b() { info!("1.b");     }
+    pub fn sys_1_c() { info!("1.c");     }
+    pub fn sys_1_d() { info!("1.d");     }
+    pub fn sys_2_a() { info!("2.a");     }
+    pub fn sys_2_b() { info!("2.b");     }
+    pub fn sys_2_c() { info!("2.c");     }
+    pub fn sys_2_d() { info!("2.d");     }
+    pub fn sys_3_a() { info!("3.a");     }
+    pub fn end()     { info!("[End]");   }
 }
-
-fn sys_1_a() {
-    info!("1.a");
-}
-
-fn sys_1_b() {
-    info!("1.b");
-}
-
-fn sys_1_c() {
-    info!("1.c");
-}
-
-fn sys_1_d() {
-    info!("1.d");
-}
-
-fn sys_2_a() {
-    info!("2.a");
-}
-
-fn sys_2_b() {
-    info!("2.b");
-}
-
-fn sys_2_c() {
-    info!("2.c");
-}
-
-fn sys_2_d() {
-    info!("2.d");
-}
-
-fn sys_3_a() {
-    info!("3.a");
-}
-
-fn end() {
-    info!("[End]");
-}
+use systems::*;
