@@ -132,6 +132,8 @@ use bevy_app::{App, Startup};
 use bevy_ecs::schedule::{IntoSystemConfigs, IntoSystemSetConfigs, SystemConfigs};
 use rand::distributions::{Alphanumeric, DistString};
 
+extern crate self as bevy_startup_tree;
+
 mod rng;
 mod schedule;
 
@@ -142,6 +144,24 @@ use self::schedule::StartupTreeLayer;
 ///
 /// See the [module docs](crate) for more information.
 pub use bevy_startup_tree_macros::startup_tree;
+
+pub struct StartupTree<LevelsIter, LI>
+where
+    LevelsIter: IntoIterator<Item = LI>,
+    LI: IntoIterator<Item = SystemConfigs>,
+{
+    levels: LevelsIter,
+}
+
+impl<LevelsIter, LI> StartupTree<LevelsIter, LI>
+where
+    LevelsIter: IntoIterator<Item = LI>,
+    LI: IntoIterator<Item = SystemConfigs>,
+{
+    pub fn new(levels: LevelsIter) -> Self {
+        Self { levels }
+    }
+}
 
 const NAMESPACE_LEN: usize = 6;
 
@@ -159,23 +179,29 @@ pub trait AddStartupTree {
     /// See the [module docs](crate) for more information.
     ///
     /// [`App`]: https://docs.rs/bevy/~0.14/bevy/app/struct.App.html
-    fn add_startup_tree<I2, I>(&mut self, startup_tree: I2) -> &mut Self
+    fn add_startup_tree<LevelsIter, LI>(
+        &mut self,
+        startup_tree: StartupTree<LevelsIter, LI>,
+    ) -> &mut Self
     where
-        I2: IntoIterator<Item = I>,
-        I: IntoIterator<Item = SystemConfigs>;
+        LevelsIter: IntoIterator<Item = LI>,
+        LI: IntoIterator<Item = SystemConfigs>;
 }
 
 impl AddStartupTree for App {
-    fn add_startup_tree<I2, I>(&mut self, startup_tree: I2) -> &mut Self
+    fn add_startup_tree<LevelsIter, LI>(
+        &mut self,
+        startup_tree: StartupTree<LevelsIter, LI>,
+    ) -> &mut Self
     where
-        I2: IntoIterator<Item = I>,
-        I: IntoIterator<Item = SystemConfigs>,
+        LevelsIter: IntoIterator<Item = LI>,
+        LI: IntoIterator<Item = SystemConfigs>,
     {
         let mut rng = get_rng();
         let namespace = Alphanumeric.sample_string(&mut rng, NAMESPACE_LEN);
         let label_base = format!("__startup_tree_{namespace}");
 
-        startup_tree.into_iter().enumerate().fold(None, |last_layer_set, (i, level)| {
+        startup_tree.levels.into_iter().enumerate().fold(None, |last_layer_set, (i, level)| {
             let mut label = label_base.clone();
             write!(label, "_layer_{i}").unwrap();
             let label: &str = label.leak();

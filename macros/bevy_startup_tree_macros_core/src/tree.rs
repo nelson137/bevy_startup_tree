@@ -48,7 +48,9 @@ impl ToTokens for StartupTree {
         let vec_elements = Punctuated::<_, Token![,]>::from_iter(vec_elements);
 
         quote! {
-            vec![ #vec_elements ]
+            ::bevy_startup_tree::StartupTree::new(
+                vec![ #vec_elements ]
+            )
         }
         .to_tokens(tokens);
     }
