@@ -1,10 +1,7 @@
-mod branch;
-pub use branch::*;
+pub mod startup_tree;
+pub mod tree;
 
-mod node;
-mod tree;
-
-pub use self::{node::*, tree::*};
+pub use self::startup_tree::StartupTree;
 
 #[cfg(test)]
 mod test_utils;

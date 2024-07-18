@@ -1,10 +1,15 @@
-use bevy_startup_tree_macros_core::{Branch, Node, StartupTree, Tree, TreeDepth};
+use bevy_startup_tree_macros_core::{
+    startup_tree::{Node, StartupTree},
+    tree::{self, Branch, TreeDepth},
+};
 use quote::quote;
 use syn::parse2;
 
 mod utils;
 
 use self::utils::{assert_result, path};
+
+type Tree = tree::Tree<Node>;
 
 #[test]
 fn parse_tree_with_one_node() -> syn::Result<()> {
@@ -17,8 +22,8 @@ fn parse_tree_with_one_node() -> syn::Result<()> {
 fn parse_tree_with_long_branch() -> syn::Result<()> {
     let tree: Tree = parse2(quote! { sys1 => sys2 => sys3 })?;
     let expected = Tree::from(Branch::arm(
-        Node::from(path!(sys1)),
-        Branch::arm(Node::from(path!(sys2)), Branch::from(path!(sys3))),
+        path!(sys1).into(),
+        Branch::arm(path!(sys2).into(), path!(sys3).into()),
     ));
     assert_eq!(tree, expected);
     Ok(())

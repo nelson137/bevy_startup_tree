@@ -1,39 +1,40 @@
 use syn::{
     braced,
     parse::{Parse, ParseStream},
+    token,
     token::Brace,
     Path, Result, Token,
 };
 
-use crate::{Node, Tree};
+use super::Tree;
 
 #[derive(PartialEq)]
-pub enum Branch {
-    Leaf(Node),
-    Arm(Node, Token![=>], Box<Branch>),
-    Tree(Node, Token![=>], Tree),
+pub enum Branch<N> {
+    Leaf(N),
+    Arm(N, token::FatArrow, Box<Branch<N>>),
+    Tree(N, token::FatArrow, Tree<N>),
 }
 
-impl Branch {
-    pub fn leaf(node: Node) -> Self {
+impl<N> Branch<N> {
+    pub fn leaf(node: N) -> Self {
         Self::Leaf(node)
     }
 
-    pub fn arm(node: Node, child: Branch) -> Self {
+    pub fn arm(node: N, child: Branch<N>) -> Self {
         Self::Arm(node, Default::default(), Box::new(child))
     }
 
-    pub fn tree(node: Node, child: Tree) -> Self {
+    pub fn tree(node: N, child: Tree<N>) -> Self {
         Self::Tree(node, Default::default(), child)
     }
 
-    pub fn node(&self) -> &Node {
+    pub fn node(&self) -> &N {
         match self {
             Self::Leaf(node) | Self::Arm(node, _, _) | Self::Tree(node, _, _) => node,
         }
     }
 
-    pub fn sub_tree_mut(&mut self) -> Option<&mut Tree> {
+    pub fn sub_tree_mut(&mut self) -> Option<&mut Tree<N>> {
         match self {
             Self::Tree(_, _, sub_tree) => Some(sub_tree),
             _ => None,
@@ -41,13 +42,19 @@ impl Branch {
     }
 }
 
-impl From<Path> for Branch {
+impl From<Path> for Branch<crate::startup_tree::Node> {
     fn from(path: Path) -> Self {
-        Self::leaf(Node::from(path))
+        Self::leaf(crate::startup_tree::Node::from(path))
     }
 }
 
-impl Parse for Branch {
+impl From<Path> for Branch<crate::system_tree::Node> {
+    fn from(path: Path) -> Self {
+        Self::leaf(crate::system_tree::Node::from(path))
+    }
+}
+
+impl<N: Parse> Parse for Branch<N> {
     fn parse(input: ParseStream) -> Result<Self> {
         let node = input.parse()?;
 
@@ -67,7 +74,7 @@ impl Parse for Branch {
 }
 
 #[cfg(debug_assertions)]
-impl std::fmt::Debug for Branch {
+impl<N: std::fmt::Debug> std::fmt::Debug for Branch<N> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         #[derive(Debug)]
         struct FatArrow;
@@ -84,7 +91,7 @@ impl std::fmt::Debug for Branch {
 }
 
 #[cfg(debug_assertions)]
-impl std::fmt::Display for Branch {
+impl<N: std::fmt::Display> std::fmt::Display for Branch<N> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         std::fmt::Display::fmt(&self.node(), f)?;
 

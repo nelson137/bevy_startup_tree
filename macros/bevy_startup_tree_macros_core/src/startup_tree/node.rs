@@ -61,7 +61,7 @@ impl std::fmt::Display for Node {
 mod tests {
     use quote::quote;
 
-    use crate::{test_utils::path, Node};
+    use crate::{startup_tree::Node, test_utils::path};
 
     #[test]
     fn node_correctly_creates_the_into_descriptor_call() {
