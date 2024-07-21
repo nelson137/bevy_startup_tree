@@ -200,6 +200,8 @@ impl AddStartupTree for App {
     }
 }
 
+pub use bevy_startup_tree_macros::system_tree;
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;

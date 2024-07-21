@@ -12,7 +12,7 @@ exclude = ["examples/*"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace]
-members = ["macros/*", "examples/*"]
+members = ["macros/*", "examples/startup_tree/*", "examples/system_tree/*"]
 
 [dependencies]
 bevy_app = "0.14"
