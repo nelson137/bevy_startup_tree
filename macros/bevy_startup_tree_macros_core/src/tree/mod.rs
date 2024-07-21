@@ -5,43 +5,43 @@ use syn::{
     punctuated as punct, token, Error, Path, Result,
 };
 
-mod branch;
+mod node;
 
-pub use self::branch::*;
+pub use self::node::*;
 
 // Tree ////////////////////////////////////////////////////////////////////////
 
 #[derive(PartialEq)]
-pub struct Tree<N> {
+pub struct Tree<V> {
     pub depth: TreeDepth,
-    pub branches: punct::Punctuated<Branch<N>, token::Comma>,
+    pub nodes: punct::Punctuated<Node<V>, token::Comma>,
 }
 
-impl<N> Tree<N> {
-    pub fn new(depth: TreeDepth, branches: Vec<Branch<N>>) -> Self {
-        Self { depth, branches: punct::Punctuated::from_iter(branches) }
+impl<V> Tree<V> {
+    pub fn new(depth: TreeDepth, nodes: Vec<Node<V>>) -> Self {
+        Self { depth, nodes: punct::Punctuated::from_iter(nodes) }
     }
 
-    pub fn from_branches(branches: Vec<Branch<N>>, trailing_comma: bool) -> Self {
-        let mut branches = punct::Punctuated::from_iter(branches);
+    pub fn from_nodes(nodes: Vec<Node<V>>, trailing_comma: bool) -> Self {
+        let mut nodes = punct::Punctuated::from_iter(nodes);
         if trailing_comma {
-            branches.push_punct(Default::default());
+            nodes.push_punct(Default::default());
         }
-        Self { depth: TreeDepth::default(), branches }
+        Self { depth: TreeDepth::default(), nodes }
     }
 
-    pub fn from_branch(branch: Branch<N>, trailing_comma: bool) -> Self {
-        Self::from_branches(vec![branch], trailing_comma)
+    pub fn from_node(node: Node<V>, trailing_comma: bool) -> Self {
+        Self::from_nodes(vec![node], trailing_comma)
     }
 
-    pub fn from_node(node: N, trailing_comma: bool) -> Self {
-        Self::from_branch(Branch::Leaf(node), trailing_comma)
+    pub fn from_value(value: V, trailing_comma: bool) -> Self {
+        Self::from_node(Node::Leaf(value), trailing_comma)
     }
 
     fn _calculate_depths_impl(this: &mut Self, depth: TreeDepth) {
         this.depth = depth;
-        for branch in &mut this.branches {
-            if let Some(b_child_tree) = branch.sub_tree_mut() {
+        for node in &mut this.nodes {
+            if let Some(b_child_tree) = node.sub_tree_mut() {
                 Self::_calculate_depths_impl(b_child_tree, depth + 1);
             }
         }
@@ -52,82 +52,76 @@ impl<N> Tree<N> {
     }
 }
 
-impl Tree<crate::startup_tree::Node> {
+impl Tree<crate::startup_tree::ExprNode> {
     pub fn from_path(path: Path, trailing_comma: bool) -> Self {
-        Self::from_branch(path.into(), trailing_comma)
+        Self::from_node(path.into(), trailing_comma)
     }
 }
 
-impl Tree<crate::system_tree::Node> {
+impl Tree<crate::system_tree::SystemNode> {
     pub fn from_path(path: Path, trailing_comma: bool) -> Self {
-        Self::from_branch(path.into(), trailing_comma)
+        Self::from_node(path.into(), trailing_comma)
     }
 }
 
-impl<N, B: Into<Branch<N>>> FromIterator<B> for Tree<N> {
+impl<V, B: Into<Node<V>>> FromIterator<B> for Tree<V> {
     fn from_iter<T: IntoIterator<Item = B>>(iter: T) -> Self {
-        let branches = iter.into_iter().map(Into::into).collect();
-        Self::from_branches(branches, false)
+        let nodes = iter.into_iter().map(Into::into).collect();
+        Self::from_nodes(nodes, false)
     }
 }
 
-impl<N> From<Branch<N>> for Tree<N> {
-    fn from(branch: Branch<N>) -> Self {
-        Self::from_branch(branch, false)
-    }
-}
-
-impl<N> From<N> for Tree<N> {
-    fn from(node: N) -> Self {
+impl<V> From<Node<V>> for Tree<V> {
+    fn from(node: Node<V>) -> Self {
         Self::from_node(node, false)
     }
 }
 
-impl From<Path> for Tree<crate::startup_tree::Node> {
+impl<V> From<V> for Tree<V> {
+    fn from(node: V) -> Self {
+        Self::from_value(node, false)
+    }
+}
+
+impl From<Path> for Tree<crate::startup_tree::ExprNode> {
     fn from(path: Path) -> Self {
         Self::from_path(path, false)
     }
 }
 
-impl From<Path> for Tree<crate::system_tree::Node> {
+impl From<Path> for Tree<crate::system_tree::SystemNode> {
     fn from(path: Path) -> Self {
         Self::from_path(path, false)
     }
 }
 
-impl<N: Parse> Parse for Tree<N> {
+impl<V: Parse> Parse for Tree<V> {
     fn parse(input: ParseStream) -> Result<Self> {
         if input.is_empty() {
             return Err(Error::new(input.span(), "tree may not be empty"));
         }
-        Ok(Self {
-            depth: TreeDepth::default(),
-            branches: punct::Punctuated::parse_terminated(input)?,
-        })
+        Ok(Self { depth: TreeDepth::default(), nodes: punct::Punctuated::parse_terminated(input)? })
     }
 }
 
 #[cfg(debug_assertions)]
-impl<N: std::fmt::Debug> std::fmt::Debug for Tree<N> {
+impl<V: std::fmt::Debug> std::fmt::Debug for Tree<V> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        f.debug_struct("Tree")
-            .field("depth", &self.depth)
-            .field("branches", &self.branches)
-            .finish()
+        f.debug_struct("Tree").field("depth", &self.depth).field("nodes", &self.nodes).finish()
     }
 }
 
 #[cfg(debug_assertions)]
-impl<N: std::fmt::Display> std::fmt::Display for Tree<N> {
+impl<V: std::fmt::Display> std::fmt::Display for Tree<V> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         use std::fmt::Write;
-        if self.branches.is_empty() {
+        if self.nodes.is_empty() {
             f.write_str("{}")
         } else {
             f.write_str("{\n")?;
-            for branch in &self.branches {
+            for node in &self.nodes {
                 std::fmt::Display::fmt(&(self.depth + 1), f)?;
-                std::fmt::Display::fmt(branch, f)?;
+                std::fmt::Display::fmt(node, f)?;
                 f.write_char('\n')?;
             }
             std::fmt::Display::fmt(&self.depth, f)?;

@@ -5,13 +5,13 @@ use syn::{
     Result,
 };
 
-use crate::tree::{Branch, Tree};
+use crate::tree::{Node, Tree};
 
 mod node;
 
-pub use self::node::{Node, RuntimeStmt, NODE_RNG};
+pub use self::node::{RuntimeStmt, SystemNode, NODE_RNG};
 
-pub struct SystemTree(Tree<Node>);
+pub struct SystemTree(Tree<SystemNode>);
 
 impl Parse for SystemTree {
     fn parse(input: ParseStream) -> Result<Self> {
@@ -23,28 +23,28 @@ impl SystemTree {
     fn to_tokens_runtime_system_statements(&self) -> TokenStream2 {
         fn tree_to_tokens(
             stream: &mut TokenStream2,
-            parent_node: Option<&Node>,
-            tree: &Tree<Node>,
+            parent_node: Option<&SystemNode>,
+            tree: &Tree<SystemNode>,
         ) {
-            for branch in &tree.branches {
-                branch_to_tokens(stream, parent_node, branch);
+            for node in &tree.nodes {
+                node_to_tokens(stream, parent_node, node);
             }
         }
 
-        fn branch_to_tokens(
+        fn node_to_tokens(
             stream: &mut TokenStream2,
-            parent_node: Option<&Node>,
-            branch: &Branch<Node>,
+            parent: Option<&SystemNode>,
+            node: &Node<SystemNode>,
         ) {
-            match branch {
-                Branch::Leaf(node) => RuntimeStmt { parent_node, node }.to_tokens(stream),
-                Branch::Arm(node, _, next_branch) => {
-                    RuntimeStmt { parent_node, node }.to_tokens(stream);
-                    branch_to_tokens(stream, Some(node), next_branch);
+            match node {
+                Node::Leaf(value) => RuntimeStmt { parent, value }.to_tokens(stream),
+                Node::Arm(value, _, next) => {
+                    RuntimeStmt { parent, value }.to_tokens(stream);
+                    node_to_tokens(stream, Some(value), next);
                 }
-                Branch::Tree(node, _, next_tree) => {
-                    RuntimeStmt { parent_node, node }.to_tokens(stream);
-                    tree_to_tokens(stream, Some(node), next_tree);
+                Node::Tree(value, _, next) => {
+                    RuntimeStmt { parent, value }.to_tokens(stream);
+                    tree_to_tokens(stream, Some(value), next);
                 }
             }
         }

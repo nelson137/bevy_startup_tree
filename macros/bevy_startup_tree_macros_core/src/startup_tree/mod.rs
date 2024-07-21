@@ -5,17 +5,17 @@ use syn::{
     punctuated as punct, Result, Token,
 };
 
-use crate::tree::{Branch, Tree};
+use crate::tree::{Node, Tree};
 
 mod node;
 
-pub use self::node::Node;
+pub use self::node::ExprNode;
 
-pub struct StartupTree(Tree<Node>);
+pub struct StartupTree(Tree<ExprNode>);
 
 impl Parse for StartupTree {
     fn parse(input: ParseStream) -> Result<Self> {
-        let mut tree: Tree<Node> = input.parse()?;
+        let mut tree: Tree<ExprNode> = input.parse()?;
         tree.set_depth_root();
         Ok(Self(tree))
     }
@@ -39,7 +39,7 @@ impl ToTokens for StartupTree {
             tokens: {
                 let mut elements = TokenStream2::new();
                 elements.append_separated(
-                    level.into_iter().map(Node::as_into_descriptor_call),
+                    level.into_iter().map(ExprNode::as_into_descriptor_call),
                     Token![,](span),
                 );
                 elements
@@ -54,36 +54,48 @@ impl ToTokens for StartupTree {
     }
 }
 
-fn tree_to_levels(tree: &Tree<Node>) -> Vec<Vec<&Node>> {
-    let mut tree_levels: Vec<Vec<&Node>> = Vec::new();
+fn tree_to_levels(tree: &Tree<ExprNode>) -> Vec<Vec<&ExprNode>> {
+    let mut tree_levels: Vec<Vec<&ExprNode>> = Vec::new();
     tree_to_levels_impl(&mut tree_levels, tree, 0);
     tree_levels
 }
 
 fn tree_to_levels_impl<'tree>(
-    tree_levels: &mut Vec<Vec<&'tree Node>>,
-    subtree: &'tree Tree<Node>,
+    levels: &mut Vec<Vec<&'tree ExprNode>>,
+    subtree: &'tree Tree<ExprNode>,
     depth: usize,
 ) {
-    fn push_branch<'tree>(
-        levels: &mut Vec<Vec<&'tree Node>>,
-        branch: &'tree Branch<Node>,
+    fn push_value<'tree>(
+        levels: &mut Vec<Vec<&'tree ExprNode>>,
+        value: &'tree ExprNode,
         depth: usize,
     ) {
         if depth >= levels.len() {
-            levels.push(vec![branch.node()]);
+            levels.push(vec![value]);
         } else {
-            levels[depth].push(branch.node());
-        }
-
-        match branch {
-            Branch::Arm(_, _, b) => push_branch(levels, b, depth + 1),
-            Branch::Tree(_, _, t) => tree_to_levels_impl(levels, t, depth + 1),
-            Branch::Leaf(_) => {}
+            levels[depth].push(value);
         }
     }
 
-    for branch in &subtree.branches {
-        push_branch(tree_levels, branch, depth);
+    fn push_node<'tree>(
+        levels: &mut Vec<Vec<&'tree ExprNode>>,
+        node: &'tree Node<ExprNode>,
+        depth: usize,
+    ) {
+        match node {
+            Node::Arm(value, _, child) => {
+                push_value(levels, value, depth);
+                push_node(levels, child, depth + 1);
+            }
+            Node::Tree(value, _, next) => {
+                push_value(levels, value, depth);
+                tree_to_levels_impl(levels, next, depth + 1);
+            }
+            Node::Leaf(value) => push_value(levels, value, depth),
+        }
+    }
+
+    for node in &subtree.nodes {
+        push_node(levels, node, depth);
     }
 }

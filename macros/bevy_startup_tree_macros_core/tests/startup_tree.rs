@@ -1,6 +1,6 @@
 use bevy_startup_tree_macros_core::{
-    startup_tree::{Node, StartupTree},
-    tree::{self, Branch, TreeDepth},
+    startup_tree::{ExprNode, StartupTree},
+    tree::{self, Node, TreeDepth},
 };
 use quote::quote;
 use syn::parse2;
@@ -9,7 +9,7 @@ mod utils;
 
 use self::utils::{assert_result, path};
 
-type Tree = tree::Tree<Node>;
+type Tree = tree::Tree<ExprNode>;
 
 #[test]
 fn parse_tree_with_one_node() -> syn::Result<()> {
@@ -21,9 +21,9 @@ fn parse_tree_with_one_node() -> syn::Result<()> {
 #[test]
 fn parse_tree_with_long_branch() -> syn::Result<()> {
     let tree: Tree = parse2(quote! { sys1 => sys2 => sys3 })?;
-    let expected = Tree::from(Branch::arm(
+    let expected = Tree::from(Node::arm(
         path!(sys1).into(),
-        Branch::arm(path!(sys2).into(), path!(sys3).into()),
+        Node::arm(path!(sys2).into(), path!(sys3).into()),
     ));
     assert_eq!(tree, expected);
     Ok(())
@@ -32,12 +32,12 @@ fn parse_tree_with_long_branch() -> syn::Result<()> {
 #[test]
 fn parse_complex_tree() -> syn::Result<()> {
     let expected = Tree::from_iter([
-        Branch::from(path!(s1a)),
-        Branch::tree(
-            Node::from(path!(s1b)),
+        Node::from(path!(s1a)),
+        Node::tree(
+            ExprNode::from(path!(s1b)),
             Tree::from_iter([
-                Branch::arm(Node::from(path!(s2a)), Branch::from(path!(s3a))),
-                Branch::tree(Node::from(path!(s2b)), Tree::from_iter([path!(s3b), path!(s3c)])),
+                Node::arm(ExprNode::from(path!(s2a)), Node::from(path!(s3a))),
+                Node::tree(ExprNode::from(path!(s2b)), Tree::from_iter([path!(s3b), path!(s3c)])),
             ]),
         ),
     ]);
@@ -59,76 +59,76 @@ fn parse_complex_tree() -> syn::Result<()> {
 }
 
 #[test]
-fn parse_tree_branches_and_commas() -> syn::Result<()> {
+fn parse_tree_nodes_and_commas() -> syn::Result<()> {
     let cases = [
         (quote! { sys1 }, Ok(Tree::from(path!(sys1)))),
         (
             quote! { sys1.func(param) },
-            Ok(Tree::from_branch(
-                Branch::leaf(Node::new(parse2(quote! { sys1.func(param) })?)),
+            Ok(Tree::from_node(
+                Node::leaf(ExprNode::new(parse2(quote! { sys1.func(param) })?)),
                 false,
             )),
         ),
-        (quote! { sys2, }, Ok(Tree::from_branch(Branch::from(path!(sys2)), true))),
+        (quote! { sys2, }, Ok(Tree::from_node(Node::from(path!(sys2)), true))),
         (quote! { sys3 => }, Err("unexpected end of input, expected an expression")),
         (
             quote! { sys4 => child },
-            Ok(Tree::from_branch(
-                Branch::arm(Node::from(path!(sys4)), Branch::from(path!(child))),
+            Ok(Tree::from_node(
+                Node::arm(ExprNode::from(path!(sys4)), Node::from(path!(child))),
                 false,
             )),
         ),
         (
             quote! { sys4.func(param) => child },
-            Ok(Tree::from_branch(
-                Branch::arm(
-                    Node::new(parse2(quote! { sys4.func(param) })?),
-                    Branch::from(path!(child)),
+            Ok(Tree::from_node(
+                Node::arm(
+                    ExprNode::new(parse2(quote! { sys4.func(param) })?),
+                    Node::from(path!(child)),
                 ),
                 false,
             )),
         ),
         (
             quote! { sys5 => child, },
-            Ok(Tree::from_branch(
-                Branch::arm(Node::from(path!(sys5)), Branch::from(path!(child))),
+            Ok(Tree::from_node(
+                Node::arm(ExprNode::from(path!(sys5)), Node::from(path!(child))),
                 true,
             )),
         ),
         (
             quote! { sys6 => child1 => child2 },
-            Ok(Tree::from_branch(
-                Branch::arm(
-                    Node::from(path!(sys6)),
-                    Branch::arm(Node::from(path!(child1)), Branch::from(path!(child2))),
+            Ok(Tree::from_node(
+                Node::arm(
+                    ExprNode::from(path!(sys6)),
+                    Node::arm(ExprNode::from(path!(child1)), Node::from(path!(child2))),
                 ),
                 false,
             )),
         ),
         (
             quote! { sys7 => child1 => child2, },
-            Ok(Tree::from_branch(
-                Branch::arm(
-                    Node::from(path!(sys7)),
-                    Branch::arm(Node::from(path!(child1)), Branch::from(path!(child2))),
+            Ok(Tree::from_node(
+                Node::arm(
+                    ExprNode::from(path!(sys7)),
+                    Node::arm(ExprNode::from(path!(child1)), Node::from(path!(child2))),
                 ),
                 true,
             )),
         ),
         (
             quote! { sys8 => { child } },
-            Ok(Tree::from_branch(
-                Branch::tree(Node::from(path!(sys8)), Tree::from_path(path!(child), false)),
+            Ok(Tree::from_node(
+                Node::tree(ExprNode::from(path!(sys8)), Tree::from_path(path!(child), false)),
                 false,
             )),
         ),
         (
             quote! { sys8 => { child.func(param) } },
-            Ok(Tree::from_branch(
-                Branch::tree(
-                    Node::from(path!(sys8)),
-                    Tree::from_node(
-                        Node::new(parse2(quote! { child.func(param) }).unwrap()),
+            Ok(Tree::from_node(
+                Node::tree(
+                    ExprNode::from(path!(sys8)),
+                    Tree::from_value(
+                        ExprNode::new(parse2(quote! { child.func(param) }).unwrap()),
                         false,
                     ),
                 ),
@@ -137,15 +137,15 @@ fn parse_tree_branches_and_commas() -> syn::Result<()> {
         ),
         (
             quote! { sys9 => { child }, },
-            Ok(Tree::from_branch(
-                Branch::tree(Node::from(path!(sys9)), Tree::from_path(path!(child), false)),
+            Ok(Tree::from_node(
+                Node::tree(ExprNode::from(path!(sys9)), Tree::from_path(path!(child), false)),
                 true,
             )),
         ),
         (
             quote! { sys10 => { child, }, },
-            Ok(Tree::from_branch(
-                Branch::tree(Node::from(path!(sys10)), Tree::from_path(path!(child), true)),
+            Ok(Tree::from_node(
+                Node::tree(ExprNode::from(path!(sys10)), Tree::from_path(path!(child), true)),
                 true,
             )),
         ),
@@ -154,8 +154,8 @@ fn parse_tree_branches_and_commas() -> syn::Result<()> {
         (
             quote! { sys13a => child, sys13b },
             Ok(Tree::from_iter([
-                Branch::arm(Node::from(path!(sys13a)), path!(child).into()),
-                Branch::from(path!(sys13b)),
+                Node::arm(ExprNode::from(path!(sys13a)), path!(child).into()),
+                Node::from(path!(sys13b)),
             ])),
         ),
         (quote! { sys14a => child sys14b }, Err("expected `,`")),
@@ -224,12 +224,10 @@ fn calculate_tree_depth() {
 
     fn get_tree_depths_inner(tree: &Tree, mut depth: TreeDepth) -> Vec<D> {
         depth += 1;
-        tree.branches
+        tree.nodes
             .iter()
-            .map(|branch| match branch {
-                Branch::Tree(_, _, subtree) => {
-                    D::Tree(depth, get_tree_depths_inner(subtree, depth))
-                }
+            .map(|node| match node {
+                Node::Tree(_, _, subtree) => D::Tree(depth, get_tree_depths_inner(subtree, depth)),
                 _ => D::Value(depth),
             })
             .collect()
@@ -259,18 +257,18 @@ fn calculate_tree_depth() {
     let mut actual = Tree::new(
         TreeDepth::default(),
         vec![
-            Branch::from(path!(s1a)),
-            Branch::tree(
-                Node::from(path!(s1b)),
+            Node::from(path!(s1a)),
+            Node::tree(
+                ExprNode::from(path!(s1b)),
                 Tree::new(
                     TreeDepth::default(),
                     vec![
-                        Branch::from(path!(s2a)),
-                        Branch::tree(
-                            Node::from(path!(s2b)),
+                        Node::from(path!(s2a)),
+                        Node::tree(
+                            ExprNode::from(path!(s2b)),
                             Tree::new(
                                 TreeDepth::default(),
-                                vec![Branch::arm(Node::from(path!(s3a)), Branch::from(path!(s4a)))],
+                                vec![Node::arm(ExprNode::from(path!(s3a)), Node::from(path!(s4a)))],
                             ),
                         ),
                     ],

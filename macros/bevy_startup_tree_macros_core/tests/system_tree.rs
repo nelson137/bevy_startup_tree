@@ -1,6 +1,6 @@
 use bevy_startup_tree_macros_core::{
-    system_tree::{Node, SystemTree, NODE_RNG},
-    tree::{self, Branch},
+    system_tree::{SystemNode, SystemTree, NODE_RNG},
+    tree::{self, Node},
 };
 use quote::quote;
 use syn::parse2;
@@ -9,7 +9,7 @@ mod utils;
 
 use self::utils::{assert_result, path};
 
-type Tree = tree::Tree<Node>;
+type Tree = tree::Tree<SystemNode>;
 
 fn reseed_rng() {
     NODE_RNG.with(|rng| rng.reseed(0));
@@ -29,9 +29,9 @@ fn parse_tree_with_long_branch() -> syn::Result<()> {
     reseed_rng();
     let tree: Tree = parse2(quote! { sys1 => sys2 => sys3 })?;
     reseed_rng();
-    let expected = Tree::from(Branch::arm(
+    let expected = Tree::from(Node::arm(
         path!(sys1).into(),
-        Branch::arm(path!(sys2).into(), path!(sys3).into()),
+        Node::arm(path!(sys2).into(), path!(sys3).into()),
     ));
     assert_eq!(tree, expected);
     Ok(())
@@ -41,12 +41,12 @@ fn parse_tree_with_long_branch() -> syn::Result<()> {
 fn parse_complex_tree() -> syn::Result<()> {
     reseed_rng();
     let expected = Tree::from_iter([
-        Branch::from(path!(s1a)),
-        Branch::tree(
-            Node::from(path!(s1b)),
+        Node::from(path!(s1a)),
+        Node::tree(
+            SystemNode::from(path!(s1b)),
             Tree::from_iter([
-                Branch::arm(Node::from(path!(s2a)), Branch::from(path!(s3a))),
-                Branch::tree(Node::from(path!(s2b)), Tree::from_iter([path!(s3b), path!(s3c)])),
+                Node::arm(SystemNode::from(path!(s2a)), Node::from(path!(s3a))),
+                Node::tree(SystemNode::from(path!(s2b)), Tree::from_iter([path!(s3b), path!(s3c)])),
             ]),
         ),
     ]);
@@ -69,40 +69,40 @@ fn parse_complex_tree() -> syn::Result<()> {
 }
 
 #[test]
-fn parse_tree_branches_and_commas() -> syn::Result<()> {
+fn parse_tree_nodes_and_commas() -> syn::Result<()> {
     reseed_rng();
     // Expected cases that are `Err` have an array with a dummy node so that the
     // RNG lines up with the actual cases.
-    let expected_cases: &[(&[Node], Result<Tree, &str>)] = &[
+    let expected_cases: &[(&[SystemNode], Result<Tree, &str>)] = &[
         // #1
         (&[], Ok(Tree::from(path!(sys1)))),
         // #2
-        (&[], Ok(Tree::from_branch(Branch::from(path!(sys2)), true))),
+        (&[], Ok(Tree::from_node(Node::from(path!(sys2)), true))),
         // #3
-        (&[Node::from(path!(p))], Err("unexpected end of input, expected identifier")),
+        (&[SystemNode::from(path!(p))], Err("unexpected end of input, expected identifier")),
         // #4
         (
             &[],
-            Ok(Tree::from_branch(
-                Branch::arm(Node::from(path!(sys4)), Branch::from(path!(child))),
+            Ok(Tree::from_node(
+                Node::arm(SystemNode::from(path!(sys4)), Node::from(path!(child))),
                 false,
             )),
         ),
         // #5
         (
             &[],
-            Ok(Tree::from_branch(
-                Branch::arm(Node::from(path!(sys5)), Branch::from(path!(child))),
+            Ok(Tree::from_node(
+                Node::arm(SystemNode::from(path!(sys5)), Node::from(path!(child))),
                 true,
             )),
         ),
         // #6
         (
             &[],
-            Ok(Tree::from_branch(
-                Branch::arm(
-                    Node::from(path!(sys6)),
-                    Branch::arm(Node::from(path!(child1)), Branch::from(path!(child2))),
+            Ok(Tree::from_node(
+                Node::arm(
+                    SystemNode::from(path!(sys6)),
+                    Node::arm(SystemNode::from(path!(child1)), Node::from(path!(child2))),
                 ),
                 false,
             )),
@@ -110,10 +110,10 @@ fn parse_tree_branches_and_commas() -> syn::Result<()> {
         // #7
         (
             &[],
-            Ok(Tree::from_branch(
-                Branch::arm(
-                    Node::from(path!(sys7)),
-                    Branch::arm(Node::from(path!(child1)), Branch::from(path!(child2))),
+            Ok(Tree::from_node(
+                Node::arm(
+                    SystemNode::from(path!(sys7)),
+                    Node::arm(SystemNode::from(path!(child1)), Node::from(path!(child2))),
                 ),
                 true,
             )),
@@ -121,41 +121,41 @@ fn parse_tree_branches_and_commas() -> syn::Result<()> {
         // #8
         (
             &[],
-            Ok(Tree::from_branch(
-                Branch::tree(Node::from(path!(sys8)), Tree::from_path(path!(child), false)),
+            Ok(Tree::from_node(
+                Node::tree(SystemNode::from(path!(sys8)), Tree::from_path(path!(child), false)),
                 false,
             )),
         ),
         // #9
         (
             &[],
-            Ok(Tree::from_branch(
-                Branch::tree(Node::from(path!(sys9)), Tree::from_path(path!(child), false)),
+            Ok(Tree::from_node(
+                Node::tree(SystemNode::from(path!(sys9)), Tree::from_path(path!(child), false)),
                 true,
             )),
         ),
         // #10
         (
             &[],
-            Ok(Tree::from_branch(
-                Branch::tree(Node::from(path!(sys10)), Tree::from_path(path!(child), true)),
+            Ok(Tree::from_node(
+                Node::tree(SystemNode::from(path!(sys10)), Tree::from_path(path!(child), true)),
                 true,
             )),
         ),
         // #11
-        (&[Node::from(path!(p))], Err("expected `,`")),
+        (&[SystemNode::from(path!(p))], Err("expected `,`")),
         // #12
         (&[], Ok(Tree::from_iter([path!(sys12a), path!(sys12b)]))),
         // #13
         (
             &[],
             Ok(Tree::from_iter([
-                Branch::arm(Node::from(path!(sys13a)), path!(child).into()),
-                Branch::from(path!(sys13b)),
+                Node::arm(SystemNode::from(path!(sys13a)), path!(child).into()),
+                Node::from(path!(sys13b)),
             ])),
         ),
         // #14
-        (&[Node::from(path!(p))], Err("expected `,`")),
+        (&[SystemNode::from(path!(p))], Err("expected `,`")),
     ];
 
     reseed_rng();

@@ -6,9 +6,9 @@ use syn::{
 };
 
 #[derive(PartialEq)]
-pub struct Node(Expr);
+pub struct ExprNode(Expr);
 
-impl Node {
+impl ExprNode {
     pub fn new(expr: Expr) -> Self {
         Self(expr)
     }
@@ -21,26 +21,26 @@ impl Node {
     }
 }
 
-impl From<Path> for Node {
+impl From<Path> for ExprNode {
     fn from(path: Path) -> Self {
-        Node::new(Expr::Path(ExprPath { attrs: Vec::new(), qself: None, path }))
+        ExprNode::new(Expr::Path(ExprPath { attrs: Vec::new(), qself: None, path }))
     }
 }
 
-impl Parse for Node {
+impl Parse for ExprNode {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self(input.parse()?))
     }
 }
 
-impl ToTokens for Node {
+impl ToTokens for ExprNode {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         self.0.to_tokens(tokens);
     }
 }
 
 #[cfg(debug_assertions)]
-impl std::fmt::Debug for Node {
+impl std::fmt::Debug for ExprNode {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let path = &self.0;
         let path = quote! { #path };
@@ -49,7 +49,7 @@ impl std::fmt::Debug for Node {
 }
 
 #[cfg(debug_assertions)]
-impl std::fmt::Display for Node {
+impl std::fmt::Display for ExprNode {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let path = &self.0;
         let path = quote! { #path };
@@ -61,11 +61,13 @@ impl std::fmt::Display for Node {
 mod tests {
     use quote::quote;
 
-    use crate::{startup_tree::Node, test_utils::path};
+    use crate::test_utils::path;
+
+    use super::*;
 
     #[test]
     fn node_correctly_creates_the_into_descriptor_call() {
-        let node = Node::new(path!(sys));
+        let node = ExprNode::new(path!(sys));
         let expected_call =
             quote! { ::bevy::prelude::IntoSystemConfigs::into_configs(sys) }.to_string();
         let actual_call = node.as_into_descriptor_call().to_string();

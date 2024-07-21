@@ -59,36 +59,36 @@ mod node_rng_tests {
 // Node ////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, PartialEq, Eq)]
-pub struct Node {
+pub struct SystemNode {
     system_path: Path,
     system_output_ident: Ident,
 }
 
-impl Hash for Node {
+impl Hash for SystemNode {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.system_output_ident.hash(state);
     }
 }
 
-impl PartialOrd for Node {
+impl PartialOrd for SystemNode {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.system_output_ident.cmp(&other.system_output_ident))
     }
 }
 
-impl Ord for Node {
+impl Ord for SystemNode {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.system_output_ident.cmp(&other.system_output_ident)
     }
 }
 
-impl From<Path> for Node {
+impl From<Path> for SystemNode {
     fn from(path: Path) -> Self {
-        Node::new(path)
+        SystemNode::new(path)
     }
 }
 
-impl Node {
+impl SystemNode {
     pub fn new(system_path: Path) -> Self {
         let mut output = "__sysout__".to_string();
         NODE_RNG.with(|rng| {
@@ -106,14 +106,14 @@ impl Node {
     }
 }
 
-impl Parse for Node {
+impl Parse for SystemNode {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self::new(input.parse()?))
     }
 }
 
 #[cfg(debug_assertions)]
-impl std::fmt::Debug for Node {
+impl std::fmt::Debug for SystemNode {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let output_ident = &self.system_output_ident;
         let output_ident = quote! { #output_ident };
@@ -126,7 +126,7 @@ impl std::fmt::Debug for Node {
 }
 
 #[cfg(debug_assertions)]
-impl std::fmt::Display for Node {
+impl std::fmt::Display for SystemNode {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let output_ident = &self.system_output_ident;
         let output_ident = quote! { #output_ident };
@@ -145,19 +145,19 @@ impl std::fmt::Display for Node {
 // Runtime Statement ///////////////////////////////////////////////////////////
 
 pub struct RuntimeStmt<'a> {
-    pub parent_node: Option<&'a Node>,
-    pub node: &'a Node,
+    pub parent: Option<&'a SystemNode>,
+    pub value: &'a SystemNode,
 }
 
 impl ToTokens for RuntimeStmt<'_> {
     /// `let __sysout__abc123__step0 = world.run_system_once_with((), step0);`
     fn to_tokens(&self, tokens: &mut TokenStream2) {
-        let output_ident = &self.node.system_output_ident;
-        let parent_output_ident = match &self.parent_node {
+        let output_ident = &self.value.system_output_ident;
+        let parent_output_ident = match &self.parent {
             Some(parent_node) => parent_node.system_output_ident.to_token_stream(),
             None => quote! { () },
         };
-        let system = &self.node.system_path;
+        let system = &self.value.system_path;
         quote! { let #output_ident = world.run_system_once_with(#parent_output_ident, #system); }
             .to_tokens(tokens);
     }
