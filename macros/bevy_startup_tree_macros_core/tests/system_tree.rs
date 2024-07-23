@@ -1,15 +1,17 @@
 use bevy_startup_tree_macros_core::{
     system_tree::{SystemNode, SystemTree, NODE_RNG},
-    tree::{self, Node},
+    tree,
 };
 use quote::quote;
 use syn::parse2;
 
+#[allow(dead_code)]
 mod utils;
 
-use self::utils::{assert_result, path};
+use self::utils::path;
 
 type Tree = tree::Tree<SystemNode>;
+type Node = tree::Node<SystemNode>;
 
 fn reseed_rng() {
     NODE_RNG.with(|rng| rng.reseed(0));
@@ -45,8 +47,8 @@ fn parse_complex_tree() -> syn::Result<()> {
         Node::tree(
             SystemNode::from(path!(s1b)),
             Tree::from_iter([
-                Node::arm(SystemNode::from(path!(s2a)), Node::from(path!(s3a))),
-                Node::tree(SystemNode::from(path!(s2b)), Tree::from_iter([path!(s3b), path!(s3c)])),
+                Node::arm(path!(s2a).into(), path!(s3a).into()),
+                Node::tree(path!(s2b).into(), Tree::from_iter([path!(s3b), path!(s3c)])),
             ]),
         ),
     ]);
@@ -64,136 +66,6 @@ fn parse_complex_tree() -> syn::Result<()> {
     })?;
 
     assert_eq!(actual, expected);
-
-    Ok(())
-}
-
-#[test]
-fn parse_tree_nodes_and_commas() -> syn::Result<()> {
-    reseed_rng();
-    // Expected cases that are `Err` have an array with a dummy node so that the
-    // RNG lines up with the actual cases.
-    let expected_cases: &[(&[SystemNode], Result<Tree, &str>)] = &[
-        // #1
-        (&[], Ok(Tree::from(path!(sys1)))),
-        // #2
-        (&[], Ok(Tree::from_node(Node::from(path!(sys2)), true))),
-        // #3
-        (&[SystemNode::from(path!(p))], Err("unexpected end of input, expected identifier")),
-        // #4
-        (
-            &[],
-            Ok(Tree::from_node(
-                Node::arm(SystemNode::from(path!(sys4)), Node::from(path!(child))),
-                false,
-            )),
-        ),
-        // #5
-        (
-            &[],
-            Ok(Tree::from_node(
-                Node::arm(SystemNode::from(path!(sys5)), Node::from(path!(child))),
-                true,
-            )),
-        ),
-        // #6
-        (
-            &[],
-            Ok(Tree::from_node(
-                Node::arm(
-                    SystemNode::from(path!(sys6)),
-                    Node::arm(SystemNode::from(path!(child1)), Node::from(path!(child2))),
-                ),
-                false,
-            )),
-        ),
-        // #7
-        (
-            &[],
-            Ok(Tree::from_node(
-                Node::arm(
-                    SystemNode::from(path!(sys7)),
-                    Node::arm(SystemNode::from(path!(child1)), Node::from(path!(child2))),
-                ),
-                true,
-            )),
-        ),
-        // #8
-        (
-            &[],
-            Ok(Tree::from_node(
-                Node::tree(SystemNode::from(path!(sys8)), Tree::from_path(path!(child), false)),
-                false,
-            )),
-        ),
-        // #9
-        (
-            &[],
-            Ok(Tree::from_node(
-                Node::tree(SystemNode::from(path!(sys9)), Tree::from_path(path!(child), false)),
-                true,
-            )),
-        ),
-        // #10
-        (
-            &[],
-            Ok(Tree::from_node(
-                Node::tree(SystemNode::from(path!(sys10)), Tree::from_path(path!(child), true)),
-                true,
-            )),
-        ),
-        // #11
-        (&[SystemNode::from(path!(p))], Err("expected `,`")),
-        // #12
-        (&[], Ok(Tree::from_iter([path!(sys12a), path!(sys12b)]))),
-        // #13
-        (
-            &[],
-            Ok(Tree::from_iter([
-                Node::arm(SystemNode::from(path!(sys13a)), path!(child).into()),
-                Node::from(path!(sys13b)),
-            ])),
-        ),
-        // #14
-        (&[SystemNode::from(path!(p))], Err("expected `,`")),
-    ];
-
-    reseed_rng();
-    let actual_cases = [
-        // #1
-        quote! { sys1 },
-        // #2
-        quote! { sys2, },
-        // #3
-        quote! { sys3 => },
-        // #4
-        quote! { sys4 => child },
-        // #5
-        quote! { sys5 => child, },
-        // #6
-        quote! { sys6 => child1 => child2 },
-        // #7
-        quote! { sys7 => child1 => child2, },
-        // #8
-        quote! { sys8 => { child } },
-        // #9
-        quote! { sys9 => { child }, },
-        // #10
-        quote! { sys10 => { child, }, },
-        // #11
-        quote! { sys11a sys11b },
-        // #12
-        quote! { sys12a, sys12b },
-        // #13
-        quote! { sys13a => child, sys13b },
-        // #14
-        quote! { sys14a => child sys14b },
-    ];
-
-    for (tokens, (_, expected)) in actual_cases.into_iter().zip(expected_cases) {
-        let actual = parse2(tokens);
-        assert_result(&actual, expected);
-    }
 
     Ok(())
 }

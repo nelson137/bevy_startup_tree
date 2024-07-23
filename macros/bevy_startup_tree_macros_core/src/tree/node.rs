@@ -42,6 +42,12 @@ impl<V> Node<V> {
     }
 }
 
+impl<V: Parse> From<V> for Node<V> {
+    fn from(value: V) -> Self {
+        Self::leaf(value)
+    }
+}
+
 impl From<Path> for Node<crate::startup_tree::ExprNode> {
     fn from(path: Path) -> Self {
         Self::leaf(crate::startup_tree::ExprNode::from(path))

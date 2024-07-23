@@ -59,15 +59,14 @@ impl std::fmt::Display for ExprNode {
 
 #[cfg(test)]
 mod tests {
+    use proc_macro2::Span;
     use quote::quote;
-
-    use crate::test_utils::path;
 
     use super::*;
 
     #[test]
     fn node_correctly_creates_the_into_descriptor_call() {
-        let node = ExprNode::new(path!(sys));
+        let node = ExprNode::from(syn::Path::from(syn::Ident::new("sys", Span::call_site())));
         let expected_call =
             quote! { ::bevy::prelude::IntoSystemConfigs::into_configs(sys) }.to_string();
         let actual_call = node.as_into_descriptor_call().to_string();

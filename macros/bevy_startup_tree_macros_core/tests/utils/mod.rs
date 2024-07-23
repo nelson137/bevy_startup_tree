@@ -13,8 +13,31 @@ pub fn assert_result<T: PartialEq + Debug>(actual: &syn::Result<T>, expected: &R
 
 #[macro_export]
 macro_rules! __path {
-    ($tokens:path) => {
-        syn::parse2::<syn::Path>(quote::quote! { $tokens }).expect("failed to parse path")
+    ($ident:ident $(:: $rest:ident)*) => {
+        ::syn::Path {
+            leading_colon: ::core::option::Option::None,
+            segments: ::syn::punctuated::Punctuated::from_iter([
+                ::syn::PathSegment::from(
+                    ::syn::Ident::new(stringify!($ident), ::proc_macro2::Span::call_site()),
+                ),
+                $(::syn::PathSegment::from(
+                    ::syn::Ident::new(stringify!($rest), ::proc_macro2::Span::call_site()),
+                ),)*
+            ]),
+        }
+    };
+    (:: $ident:ident $(:: $rest:ident)*) => {
+        ::syn::Path {
+            leading_colon: ::core::option::Option::Some(::core::default::Default::default()),
+            segments: ::syn::punctuated::Punctuated::from_iter([
+                ::syn::PathSegment::from(
+                    ::syn::Ident::new(stringify!($ident), ::proc_macro2::Span::call_site()),
+                ),
+                $(::syn::PathSegment::from(
+                    ::syn::Ident::new(stringify!($rest), ::proc_macro2::Span::call_site()),
+                ),)*
+            ]),
+        }
     };
 }
 pub use crate::__path as path;
