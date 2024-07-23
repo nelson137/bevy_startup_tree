@@ -948,9 +948,17 @@ dependencies = [
 name = "bevy_startup_tree_macros_core"
 version = "0.6.1"
 dependencies = [
+ "bevy_startup_tree_test_utils",
  "proc-macro2",
  "quote",
  "rand",
+ "syn 2.0.71",
+]
+
+[[package]]
+name = "bevy_startup_tree_test_utils"
+version = "0.6.1"
+dependencies = [
  "syn 2.0.71",
 ]
 

@@ -3,6 +3,3 @@ pub mod system_tree;
 pub mod tree;
 
 pub use self::{startup_tree::StartupTree, system_tree::SystemTree};
-
-#[cfg(test)]
-mod test_utils;

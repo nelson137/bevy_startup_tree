@@ -1,0 +1,12 @@
+[package]
+name = "bevy_startup_tree_test_utils"
+version = "0.6.1"
+edition = "2021"
+description = "test utilities for bevy_startup_tree"
+documentation = "https://docs.rs/bevy_startup_tree_test_utils"
+license = "MIT OR Apache-2.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+syn = "2.0"

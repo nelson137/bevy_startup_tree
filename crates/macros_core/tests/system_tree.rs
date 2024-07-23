@@ -2,13 +2,9 @@ use bevy_startup_tree_macros_core::{
     system_tree::{SystemNode, SystemTree, NODE_RNG},
     tree,
 };
+use bevy_startup_tree_test_utils::path;
 use quote::quote;
 use syn::parse2;
-
-#[allow(dead_code)]
-mod utils;
-
-use self::utils::path;
 
 type Tree = tree::Tree<SystemNode>;
 type Node = tree::Node<SystemNode>;

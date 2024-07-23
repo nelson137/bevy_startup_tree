@@ -1,5 +1,12 @@
 use std::fmt::Debug;
 
+pub fn assert_err<T>(result: &syn::Result<T>, expected_message: &str) {
+    match result {
+        Err(err) => assert_eq!(err.to_string(), expected_message),
+        _ => panic!("expected Ok result to be an error with message: {expected_message}"),
+    }
+}
+
 pub fn assert_result<T: PartialEq + Debug>(actual: &syn::Result<T>, expected: &Result<T, &str>) {
     fn normalize<T, E: ToString>(r: &Result<T, E>) -> Result<&T, String> {
         r.as_ref().map_err(|err| err.to_string())

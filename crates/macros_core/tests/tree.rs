@@ -1,11 +1,7 @@
 use bevy_startup_tree_macros_core::tree::{self, Node};
+use bevy_startup_tree_test_utils::assert_result;
 use quote::quote;
 use syn::parse2;
-
-#[allow(unused_imports)]
-mod utils;
-
-use self::utils::assert_result;
 
 type Tree = tree::Tree<syn::LitInt>;
 

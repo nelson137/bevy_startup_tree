@@ -101,13 +101,12 @@ impl<V: fmt::Debug> fmt::Debug for Tree<V> {
 
 #[cfg(test)]
 mod tree_tests {
+    use bevy_startup_tree_test_utils::assert_err;
     use proc_macro2::TokenStream as TokenStream2;
     use syn::{
         parse::{Parse, ParseStream},
         parse2, Result,
     };
-
-    use crate::test_utils::assert_err;
 
     type Tree = super::Tree<N>;
 
