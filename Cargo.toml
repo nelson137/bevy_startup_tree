@@ -12,12 +12,12 @@ exclude = ["examples/*"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace]
-members = ["macros/*", "examples/startup_tree/*", "examples/system_tree/*"]
+members = ["crates/*", "examples/startup_tree/*", "examples/system_tree/*"]
 
 [dependencies]
 bevy_app = "0.14"
 bevy_ecs = "0.14"
-bevy_startup_tree_macros = { version = "0.6.1", path = "./macros/bevy_startup_tree_macros" }
+bevy_startup_tree_macros = { version = "0.6.1", path = "./crates/macros" }
 itertools = "0.13"
 rand = "0.8.5"
 

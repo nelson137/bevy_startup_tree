@@ -12,6 +12,6 @@ license = "MIT OR Apache-2.0"
 proc-macro = true
 
 [dependencies]
-bevy_startup_tree_macros_core = { version = "0.6.1", path = "../bevy_startup_tree_macros_core" }
+bevy_startup_tree_macros_core = { version = "0.6.1", path = "../macros_core" }
 quote = "1.0"
 syn = "2.0"
