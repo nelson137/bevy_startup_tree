@@ -103,7 +103,7 @@ impl<V: std::fmt::Display> std::fmt::Display for Node<V> {
             }
             Node::Tree(_, _, child) => {
                 f.write_str(" => ")?;
-                std::fmt::Display::fmt(child, f)?;
+                std::fmt::Display::fmt(&child.display(), f)?;
             }
         }
 

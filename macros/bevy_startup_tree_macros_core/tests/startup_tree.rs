@@ -1,6 +1,6 @@
 use bevy_startup_tree_macros_core::{
     startup_tree::{ExprNode, StartupTree},
-    tree::{self, Node, TreeDepth},
+    tree::{self, Node},
 };
 use quote::quote;
 use syn::parse2;
@@ -207,77 +207,4 @@ fn tokenize_tree() {
     let actual = quote! { #tree }.to_string();
 
     assert_eq!(actual, expected);
-}
-
-#[test]
-fn calculate_tree_depth() {
-    #[derive(Debug, PartialEq)]
-    enum D {
-        Value(TreeDepth),
-        Tree(TreeDepth, Vec<D>),
-    }
-
-    fn get_tree_depths(tree: &Tree) -> D {
-        let depth = TreeDepth::default();
-        D::Tree(depth, get_tree_depths_inner(tree, depth))
-    }
-
-    fn get_tree_depths_inner(tree: &Tree, mut depth: TreeDepth) -> Vec<D> {
-        depth += 1;
-        tree.nodes
-            .iter()
-            .map(|node| match node {
-                Node::Tree(_, _, subtree) => D::Tree(depth, get_tree_depths_inner(subtree, depth)),
-                _ => D::Value(depth),
-            })
-            .collect()
-    }
-
-    // let tree = startup_tree! {
-    //     s1a,
-    //     s1b => {
-    //         s2a,
-    //         s2b => {
-    //             s3a => s4a,
-    //         },
-    //     },
-    // };
-
-    let expected_depths = D::Tree(
-        TreeDepth(0),
-        vec![
-            D::Value(TreeDepth(1)),
-            D::Tree(
-                TreeDepth(1),
-                vec![D::Value(TreeDepth(2)), D::Tree(TreeDepth(2), vec![D::Value(TreeDepth(3))])],
-            ),
-        ],
-    );
-
-    let mut actual = Tree::new(
-        TreeDepth::default(),
-        vec![
-            Node::from(path!(s1a)),
-            Node::tree(
-                ExprNode::from(path!(s1b)),
-                Tree::new(
-                    TreeDepth::default(),
-                    vec![
-                        Node::from(path!(s2a)),
-                        Node::tree(
-                            ExprNode::from(path!(s2b)),
-                            Tree::new(
-                                TreeDepth::default(),
-                                vec![Node::arm(ExprNode::from(path!(s3a)), Node::from(path!(s4a)))],
-                            ),
-                        ),
-                    ],
-                ),
-            ),
-        ],
-    );
-    actual.set_depth_root();
-    let actual_depths = get_tree_depths(&actual);
-
-    assert_eq!(actual_depths, expected_depths);
 }

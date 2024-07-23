@@ -15,9 +15,7 @@ pub struct StartupTree(Tree<ExprNode>);
 
 impl Parse for StartupTree {
     fn parse(input: ParseStream) -> Result<Self> {
-        let mut tree: Tree<ExprNode> = input.parse()?;
-        tree.set_depth_root();
-        Ok(Self(tree))
+        Ok(Self(input.parse()?))
     }
 }
 

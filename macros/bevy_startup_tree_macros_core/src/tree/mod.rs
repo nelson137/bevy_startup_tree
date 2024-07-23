@@ -1,3 +1,5 @@
+#[cfg(debug_assertions)]
+use std::fmt;
 use std::ops::{Add, AddAssign};
 
 use syn::{
@@ -13,13 +15,12 @@ pub use self::node::*;
 
 #[derive(PartialEq)]
 pub struct Tree<V> {
-    pub depth: TreeDepth,
     pub nodes: punct::Punctuated<Node<V>, token::Comma>,
 }
 
 impl<V> Tree<V> {
-    pub fn new(depth: TreeDepth, nodes: Vec<Node<V>>) -> Self {
-        Self { depth, nodes: punct::Punctuated::from_iter(nodes) }
+    pub fn new(nodes: Vec<Node<V>>) -> Self {
+        Self { nodes: punct::Punctuated::from_iter(nodes) }
     }
 
     pub fn from_nodes(nodes: Vec<Node<V>>, trailing_comma: bool) -> Self {
@@ -27,7 +28,7 @@ impl<V> Tree<V> {
         if trailing_comma {
             nodes.push_punct(Default::default());
         }
-        Self { depth: TreeDepth::default(), nodes }
+        Self { nodes }
     }
 
     pub fn from_node(node: Node<V>, trailing_comma: bool) -> Self {
@@ -36,19 +37,6 @@ impl<V> Tree<V> {
 
     pub fn from_value(value: V, trailing_comma: bool) -> Self {
         Self::from_node(Node::Leaf(value), trailing_comma)
-    }
-
-    fn _calculate_depths_impl(this: &mut Self, depth: TreeDepth) {
-        this.depth = depth;
-        for node in &mut this.nodes {
-            if let Some(b_child_tree) = node.sub_tree_mut() {
-                Self::_calculate_depths_impl(b_child_tree, depth + 1);
-            }
-        }
-    }
-
-    pub fn set_depth_root(&mut self) {
-        Self::_calculate_depths_impl(self, TreeDepth::default());
     }
 }
 
@@ -100,33 +88,14 @@ impl<V: Parse> Parse for Tree<V> {
         if input.is_empty() {
             return Err(Error::new(input.span(), "tree may not be empty"));
         }
-        Ok(Self { depth: TreeDepth::default(), nodes: punct::Punctuated::parse_terminated(input)? })
+        Ok(Self { nodes: punct::Punctuated::parse_terminated(input)? })
     }
 }
 
 #[cfg(debug_assertions)]
-impl<V: std::fmt::Debug> std::fmt::Debug for Tree<V> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        f.debug_struct("Tree").field("depth", &self.depth).field("nodes", &self.nodes).finish()
-    }
-}
-
-#[cfg(debug_assertions)]
-impl<V: std::fmt::Display> std::fmt::Display for Tree<V> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use std::fmt::Write;
-        if self.nodes.is_empty() {
-            f.write_str("{}")
-        } else {
-            f.write_str("{\n")?;
-            for node in &self.nodes {
-                std::fmt::Display::fmt(&(self.depth + 1), f)?;
-                std::fmt::Display::fmt(node, f)?;
-                f.write_char('\n')?;
-            }
-            std::fmt::Display::fmt(&self.depth, f)?;
-            f.write_char('}')
-        }
+impl<V: fmt::Debug> fmt::Debug for Tree<V> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Tree").field("nodes", &self.nodes).finish()
     }
 }
 
@@ -159,11 +128,87 @@ mod tree_tests {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// Tree Depth //////////////////////////////////////////////////////////////////
+// Tree Display ////////////////////////////////////////////////////////////////
 
+#[cfg(debug_assertions)]
+impl<V> Tree<V> {
+    pub fn display(&self) -> TreeDisplay<V> {
+        self.display_with_depth(Default::default())
+    }
+
+    fn display_with_depth(&self, depth: TreeDepth) -> TreeDisplay<V> {
+        TreeDisplay { tree: self, depth }
+    }
+}
+
+#[cfg(debug_assertions)]
+pub struct TreeDisplay<'tree, V> {
+    tree: &'tree Tree<V>,
+    depth: TreeDepth,
+}
+
+#[cfg(debug_assertions)]
+impl<V: fmt::Display> fmt::Display for TreeDisplay<'_, V> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use fmt::Write;
+
+        if self.tree.nodes.is_empty() {
+            return f.write_str("{}");
+        }
+
+        f.write_str("{\n")?;
+        let depth = self.depth + 1;
+
+        for node in &self.tree.nodes {
+            fmt::Display::fmt(&depth, f)?;
+            fmt::Display::fmt(&NodeDisplay::new(node, depth), f)?;
+            f.write_char('\n')?;
+        }
+
+        fmt::Display::fmt(&self.depth, f)?;
+        f.write_char('}')?;
+
+        Ok(())
+    }
+}
+
+#[cfg(debug_assertions)]
+struct NodeDisplay<'tree, V> {
+    node: &'tree Node<V>,
+    depth: TreeDepth,
+}
+
+impl<'tree, V> NodeDisplay<'tree, V> {
+    fn new(node: &'tree Node<V>, depth: TreeDepth) -> Self {
+        Self { node, depth }
+    }
+}
+
+#[cfg(debug_assertions)]
+impl<V: fmt::Display> fmt::Display for NodeDisplay<'_, V> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.node {
+            Node::Leaf(value) => fmt::Display::fmt(value, f)?,
+            Node::Arm(value, _, child) => {
+                fmt::Display::fmt(value, f)?;
+                f.write_str(" => ")?;
+                fmt::Display::fmt(&Self::new(child.as_ref(), self.depth), f)?;
+            }
+            Node::Tree(value, _, child) => {
+                fmt::Display::fmt(value, f)?;
+                f.write_str(" => ")?;
+                fmt::Display::fmt(&child.display_with_depth(self.depth), f)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+#[cfg(debug_assertions)]
 #[derive(Clone, Copy, Default, PartialEq)]
-pub struct TreeDepth(pub u32);
+struct TreeDepth(u32);
 
+#[cfg(debug_assertions)]
 impl Add<u32> for TreeDepth {
     type Output = Self;
 
@@ -172,6 +217,7 @@ impl Add<u32> for TreeDepth {
     }
 }
 
+#[cfg(debug_assertions)]
 impl AddAssign<u32> for TreeDepth {
     fn add_assign(&mut self, rhs: u32) {
         self.0.add_assign(rhs);
@@ -179,8 +225,8 @@ impl AddAssign<u32> for TreeDepth {
 }
 
 #[cfg(debug_assertions)]
-impl std::fmt::Debug for TreeDepth {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Debug for TreeDepth {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match f.alternate() {
             true => write!(f, "{}", self.0),
             false => f.debug_tuple("TreeDepth").field(&self.0).finish(),
@@ -189,8 +235,8 @@ impl std::fmt::Debug for TreeDepth {
 }
 
 #[cfg(debug_assertions)]
-impl std::fmt::Display for TreeDepth {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for TreeDepth {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for _ in 0..self.0 {
             f.write_str("    ")?;
         }
@@ -198,13 +244,17 @@ impl std::fmt::Display for TreeDepth {
     }
 }
 
-#[cfg(test)]
-mod tree_depth_tests {
+#[cfg(all(test, debug_assertions))]
+mod tree_display_tests {
     use std::ops::{Add, AddAssign};
 
     use rand::random;
 
     use super::TreeDepth;
+
+    //
+    // Tree Depth
+    //
 
     fn safe_random_tree_depth() -> (u32, TreeDepth) {
         let value = random::<u32>();
@@ -214,15 +264,50 @@ mod tree_depth_tests {
 
     #[test]
     fn tree_depth_adds_one() {
-        let (value, depth) = safe_random_tree_depth();
-        assert_eq!(Add::add(depth, 1).0, value);
+        let (expected, depth) = safe_random_tree_depth();
+        assert_eq!(Add::add(depth, 1).0, expected);
     }
 
     #[test]
     fn tree_depth_add_assigns_one() {
-        let (value, mut depth) = safe_random_tree_depth();
+        let (expected, mut depth) = safe_random_tree_depth();
         AddAssign::add_assign(&mut depth, 1);
-        assert_eq!(depth.0, value);
+        assert_eq!(depth.0, expected);
+    }
+
+    //
+    // Tree Display
+    //
+
+    type Tree = super::Tree<u32>;
+    type Node = super::Node<u32>;
+
+    #[test]
+    fn print() {
+        let expected = "\
+{
+    101
+    102 => {
+        201 => 301
+        202 => 302 => 401 => {
+            501
+        }
+    }
+}";
+
+        let tree = Tree::from_iter([
+            Node::leaf(101),
+            Node::tree(
+                102,
+                Tree::from_iter([
+                    Node::arm(201, Node::leaf(301)),
+                    Node::arm(202, Node::arm(302, Node::tree(401, Tree::from(501)))),
+                ]),
+            ),
+        ]);
+        let actual = tree.display().to_string();
+
+        assert_eq!(actual, expected);
     }
 }
 
