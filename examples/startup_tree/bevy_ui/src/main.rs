@@ -30,7 +30,7 @@ fn main() {
 }
 
 fn spawn_camera(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn(Camera2d);
 }
 
 #[derive(Component)]
@@ -46,13 +46,10 @@ fn spawn_ui_containers(mut commands: Commands) {
     commands
         .spawn((
             RootNode,
-            NodeBundle {
-                style: Style {
-                    width: Val::Percent(100.0),
-                    height: Val::Percent(100.0),
-                    justify_content: JustifyContent::SpaceBetween,
-                    ..default()
-                },
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                justify_content: JustifyContent::SpaceBetween,
                 ..default()
             },
         ))
@@ -60,14 +57,11 @@ fn spawn_ui_containers(mut commands: Commands) {
             // left vertical fill (border)
             parent.spawn((
                 LeftPanelNode,
-                NodeBundle {
-                    style: Style {
-                        width: Val::Px(200.0),
-                        height: Val::Percent(100.0),
-                        border: UiRect::all(Val::Px(2.0)),
-                        ..default()
-                    },
-                    background_color: Color::srgb(0.65, 0.65, 0.65).into(),
+                BackgroundColor(Color::srgb(0.65, 0.65, 0.65)),
+                Node {
+                    width: Val::Px(200.0),
+                    height: Val::Percent(100.0),
+                    border: UiRect::all(Val::Px(2.0)),
                     ..default()
                 },
             ));
@@ -75,15 +69,12 @@ fn spawn_ui_containers(mut commands: Commands) {
             // right vertical fill
             parent.spawn((
                 RightPanelNode,
-                NodeBundle {
-                    style: Style {
-                        flex_direction: FlexDirection::Column,
-                        justify_content: JustifyContent::Center,
-                        width: Val::Px(200.0),
-                        height: Val::Percent(100.0),
-                        ..default()
-                    },
-                    background_color: Color::srgb(0.15, 0.15, 0.15).into(),
+                BackgroundColor(Color::srgb(0.15, 0.15, 0.15)),
+                Node {
+                    flex_direction: FlexDirection::Column,
+                    justify_content: JustifyContent::Center,
+                    width: Val::Px(200.0),
+                    height: Val::Percent(100.0),
                     ..default()
                 },
             ));
@@ -96,24 +87,22 @@ fn spawn_left_panel_content(
     q_panel: Query<Entity, With<LeftPanelNode>>,
 ) {
     let panel_content_entity = commands
-        .spawn(NodeBundle {
-            style: Style { width: Val::Percent(100.0), height: Val::Percent(100.0), ..default() },
-            background_color: Color::srgb(0.15, 0.15, 0.15).into(),
-            ..default()
-        })
+        .spawn((
+            BackgroundColor(Color::srgb(0.15, 0.15, 0.15)),
+            Node { width: Val::Percent(100.0), height: Val::Percent(100.0), ..default() },
+        ))
         .with_children(|parent| {
             // text
-            parent.spawn(
-                TextBundle::from_section(
-                    "Text Example",
-                    TextStyle {
-                        font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                        font_size: 30.0,
-                        color: Color::WHITE,
-                    },
-                )
-                .with_style(Style { margin: UiRect::all(Val::Px(5.0)), ..default() }),
-            );
+            parent.spawn((
+                Text::new("Text Example"),
+                TextColor(Color::WHITE),
+                TextFont {
+                    font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                    font_size: 30.0,
+                    ..default()
+                },
+                Node { margin: UiRect::all(Val::Px(5.0)), ..default() },
+            ));
         })
         .id();
     commands.entity(q_panel.single()).add_child(panel_content_entity);
@@ -126,38 +115,34 @@ fn spawn_right_panel_content(
 ) {
     // Title
     let title_entity = commands
-        .spawn(
-            TextBundle::from_section(
-                "Scrolling list",
-                TextStyle {
-                    font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                    font_size: 25.,
-                    color: Color::WHITE,
-                },
-            )
-            .with_style(Style {
+        .spawn((
+            Text::new("Scrolling list"),
+            TextColor(Color::WHITE),
+            TextFont {
+                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                font_size: 25.,
+                ..default()
+            },
+            Node {
                 width: Val::Auto,
                 height: Val::Px(25.0),
                 margin: UiRect { left: Val::Auto, right: Val::Auto, ..default() },
                 ..default()
-            }),
-        )
+            },
+        ))
         .id();
 
     // List with hidden overflow
     let list_entity = commands
         .spawn((
             ScrollingListViewport,
-            NodeBundle {
-                style: Style {
-                    flex_direction: FlexDirection::Column,
-                    align_self: AlignSelf::Center,
-                    width: Val::Percent(100.0),
-                    height: Val::Percent(50.0),
-                    overflow: Overflow::clip_y(),
-                    ..default()
-                },
-                background_color: Color::srgb(0.10, 0.10, 0.10).into(),
+            BackgroundColor(Color::srgb(0.10, 0.10, 0.10)),
+            Node {
+                flex_direction: FlexDirection::Column,
+                align_self: AlignSelf::Center,
+                width: Val::Percent(100.0),
+                height: Val::Percent(50.0),
+                overflow: Overflow::clip_y(),
                 ..default()
             },
         ))
@@ -165,42 +150,34 @@ fn spawn_right_panel_content(
             // Moving panel
             parent
                 .spawn((
-                    NodeBundle {
-                        style: Style {
-                            flex_direction: FlexDirection::Column,
-                            flex_grow: 1.0,
-                            ..default()
-                        },
-                        ..default()
-                    },
+                    Node { flex_direction: FlexDirection::Column, flex_grow: 1.0, ..default() },
                     ScrollingList::default(),
                 ))
                 .with_children(|parent| {
                     // List items
                     for i in 0..30 {
-                        parent.spawn(
-                            TextBundle::from_section(
-                                format!("Item {i}"),
-                                TextStyle {
-                                    font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                                    font_size: 20.,
-                                    color: Color::WHITE,
-                                },
-                            )
-                            .with_style(Style {
+                        parent.spawn((
+                            Text::new(format!("Item {i}")),
+                            TextColor(Color::WHITE),
+                            TextFont {
+                                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                                font_size: 20.,
+                                ..default()
+                            },
+                            Node {
                                 flex_shrink: 0.,
                                 width: Val::Auto,
                                 height: Val::Px(20.0),
                                 margin: UiRect { left: Val::Auto, right: Val::Auto, ..default() },
                                 ..default()
-                            }),
-                        );
+                            },
+                        ));
                     }
                 });
         })
         .id();
 
-    commands.entity(q_panel.single()).push_children(&[title_entity, list_entity]);
+    commands.entity(q_panel.single()).add_children(&[title_entity, list_entity]);
 }
 
 fn spawn_middle_content(
@@ -209,8 +186,9 @@ fn spawn_middle_content(
     q_panel: Query<Entity, With<RootNode>>,
 ) {
     let blue_squares_entity = commands
-        .spawn(NodeBundle {
-            style: Style {
+        .spawn((
+            BackgroundColor(Color::srgb(0.4, 0.4, 1.0)),
+            Node {
                 width: Val::Px(200.0),
                 height: Val::Px(200.0),
                 position_type: PositionType::Absolute,
@@ -219,45 +197,35 @@ fn spawn_middle_content(
                 border: UiRect::all(Val::Px(20.0)),
                 ..default()
             },
-            background_color: Color::srgb(0.4, 0.4, 1.0).into(),
-            ..default()
-        })
+        ))
         .with_children(|parent| {
-            parent.spawn(NodeBundle {
-                style: Style {
-                    width: Val::Percent(100.0),
-                    height: Val::Percent(100.0),
-                    ..default()
-                },
-                background_color: Color::srgb(0.8, 0.8, 1.0).into(),
-                ..default()
-            });
+            parent.spawn((
+                BackgroundColor(Color::srgb(0.8, 0.8, 1.0)),
+                Node { width: Val::Percent(100.0), height: Val::Percent(100.0), ..default() },
+            ));
         })
         .id();
 
     // render order test: reddest in the back, whitest in the front (flex center)
     let render_order_test_entity = commands
-        .spawn(NodeBundle {
-            style: Style {
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                position_type: PositionType::Absolute,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
+        .spawn(Node {
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            position_type: PositionType::Absolute,
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
             ..default()
         })
         .with_children(|parent| {
             parent
-                .spawn(NodeBundle {
-                    style: Style { width: Val::Px(100.0), height: Val::Px(100.0), ..default() },
-                    background_color: Color::srgb(1.0, 0.0, 0.0).into(),
-                    ..default()
-                })
+                .spawn((
+                    BackgroundColor(Color::srgb(1.0, 0.0, 0.0)),
+                    Node { width: Val::Px(100.0), height: Val::Px(100.0), ..default() },
+                ))
                 .with_children(|parent| {
-                    parent.spawn(NodeBundle {
-                        style: Style {
+                    parent.spawn((
+                        BackgroundColor(Color::srgb(1.0, 0.3, 0.3)),
+                        Node {
                             width: Val::Px(100.0),
                             height: Val::Px(100.0),
                             position_type: PositionType::Absolute,
@@ -265,11 +233,10 @@ fn spawn_middle_content(
                             bottom: Val::Px(20.0),
                             ..default()
                         },
-                        background_color: Color::srgb(1.0, 0.3, 0.3).into(),
-                        ..default()
-                    });
-                    parent.spawn(NodeBundle {
-                        style: Style {
+                    ));
+                    parent.spawn((
+                        BackgroundColor(Color::srgb(1.0, 0.5, 0.5)),
+                        Node {
                             width: Val::Px(100.0),
                             height: Val::Px(100.0),
                             position_type: PositionType::Absolute,
@@ -277,11 +244,10 @@ fn spawn_middle_content(
                             bottom: Val::Px(40.0),
                             ..default()
                         },
-                        background_color: Color::srgb(1.0, 0.5, 0.5).into(),
-                        ..default()
-                    });
-                    parent.spawn(NodeBundle {
-                        style: Style {
+                    ));
+                    parent.spawn((
+                        BackgroundColor(Color::srgb(1.0, 0.7, 0.7)),
+                        Node {
                             width: Val::Px(100.0),
                             height: Val::Px(100.0),
                             position_type: PositionType::Absolute,
@@ -289,12 +255,11 @@ fn spawn_middle_content(
                             bottom: Val::Px(60.0),
                             ..default()
                         },
-                        background_color: Color::srgb(1.0, 0.7, 0.7).into(),
-                        ..default()
-                    });
+                    ));
                     // alpha test
-                    parent.spawn(NodeBundle {
-                        style: Style {
+                    parent.spawn((
+                        BackgroundColor(Color::srgba(1.0, 0.9, 0.9, 0.4)),
+                        Node {
                             width: Val::Px(100.0),
                             height: Val::Px(100.0),
                             position_type: PositionType::Absolute,
@@ -302,37 +267,31 @@ fn spawn_middle_content(
                             bottom: Val::Px(80.0),
                             ..default()
                         },
-                        background_color: Color::srgba(1.0, 0.9, 0.9, 0.4).into(),
-                        ..default()
-                    });
+                    ));
                 });
         })
         .id();
 
     // bevy logo (flex center)
     let logo_entity = commands
-        .spawn(NodeBundle {
-            style: Style {
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                position_type: PositionType::Absolute,
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::FlexStart,
-                ..default()
-            },
+        .spawn(Node {
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            position_type: PositionType::Absolute,
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::FlexStart,
             ..default()
         })
         .with_children(|parent| {
             // bevy logo (image)
-            parent.spawn(ImageBundle {
-                style: Style { width: Val::Px(500.0), height: Val::Auto, ..default() },
-                image: asset_server.load("branding/bevy_logo_dark_big.png").into(),
-                ..default()
-            });
+            parent.spawn((
+                ImageNode::new(asset_server.load("branding/bevy_logo_dark_big.png")),
+                Node { width: Val::Px(500.0), height: Val::Auto, ..default() },
+            ));
         })
         .id();
 
-    commands.entity(q_panel.single()).push_children(&[
+    commands.entity(q_panel.single()).add_children(&[
         blue_squares_entity,
         render_order_test_entity,
         logo_entity,
@@ -349,13 +308,13 @@ struct ScrollingList {
 
 fn mouse_scroll(
     mut mouse_wheel_events: EventReader<MouseWheel>,
-    query_list_viewport: Query<&Node, With<ScrollingListViewport>>,
-    mut query_list: Query<(&mut ScrollingList, &mut Style, &Children)>,
-    query_item: Query<&Node>,
+    query_list_viewport: Query<&ComputedNode, With<ScrollingListViewport>>,
+    mut query_list: Query<(&mut ScrollingList, &mut Node, &Children)>,
+    query_item: Query<&ComputedNode>,
 ) {
     let viewport_height = query_list_viewport.single().size().y;
     for mouse_wheel_event in mouse_wheel_events.read() {
-        for (mut scrolling_list, mut style, children) in &mut query_list {
+        for (mut scrolling_list, mut node, children) in &mut query_list {
             let items_height: f32 =
                 children.iter().map(|entity| query_item.get(*entity).unwrap().size().y).sum();
             let max_scroll = (items_height - viewport_height).max(0.);
@@ -365,7 +324,7 @@ fn mouse_scroll(
             };
             scrolling_list.position += dy;
             scrolling_list.position = scrolling_list.position.clamp(-max_scroll, 0.);
-            style.top = Val::Px(scrolling_list.position);
+            node.top = Val::Px(scrolling_list.position);
         }
     }
 }

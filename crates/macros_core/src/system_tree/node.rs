@@ -150,7 +150,7 @@ pub struct RuntimeStmt<'a> {
 }
 
 impl ToTokens for RuntimeStmt<'_> {
-    /// `let __sysout__abc123__step0 = world.run_system_once_with((), step0);`
+    /// `let __sysout__abc123__step0 = world.run_system_once_with((), step0)?;`
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         let output_ident = &self.value.system_output_ident;
         let parent_output_ident = match &self.parent {
@@ -158,7 +158,7 @@ impl ToTokens for RuntimeStmt<'_> {
             None => quote! { () },
         };
         let system = &self.value.system_path;
-        quote! { let #output_ident = world.run_system_once_with(#parent_output_ident, #system); }
+        quote! { let #output_ident = world.run_system_once_with(#parent_output_ident, #system)?; }
             .to_tokens(tokens);
     }
 }

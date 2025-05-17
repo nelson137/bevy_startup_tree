@@ -62,8 +62,14 @@ impl ToTokens for SystemTree {
         quote! {
             #[allow(non_snake_case, clippy::let_unit_value)]
             |world: &mut ::bevy::ecs::world::World| {
-                use ::bevy::ecs::system::RunSystemOnce;
-                #body
+                fn run(
+                    world: &mut ::bevy::ecs::world::World,
+                ) -> Result<(), ::bevy::ecs::system::RunSystemError> {
+                    use ::bevy::ecs::system::RunSystemOnce;
+                    #body
+                    Ok(())
+                }
+                run(world).expect("invalid system params");
             }
         }
         .to_tokens(tokens);
