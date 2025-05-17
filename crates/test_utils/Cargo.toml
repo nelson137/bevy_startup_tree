@@ -1,6 +1,6 @@
 [package]
 name = "bevy_startup_tree_test_utils"
-version = "0.6.1"
+version = "0.7.0"
 edition = "2021"
 description = "test utilities for bevy_startup_tree"
 documentation = "https://docs.rs/bevy_startup_tree_test_utils"
