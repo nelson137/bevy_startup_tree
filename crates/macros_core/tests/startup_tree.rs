@@ -19,20 +19,20 @@ fn tokenize_tree() {
     let expected = quote! {
         vec![
             ::std::vec![
-                ::bevy::prelude::IntoSystemConfigs::into_configs(s1a),
-                ::bevy::prelude::IntoSystemConfigs::into_configs(s1b)
+                ::bevy::prelude::IntoScheduleConfigs::into_configs(s1a),
+                ::bevy::prelude::IntoScheduleConfigs::into_configs(s1b)
             ],
             ::std::vec![
-                ::bevy::prelude::IntoSystemConfigs::into_configs(s2a),
-                ::bevy::prelude::IntoSystemConfigs::into_configs(s2b)
+                ::bevy::prelude::IntoScheduleConfigs::into_configs(s2a),
+                ::bevy::prelude::IntoScheduleConfigs::into_configs(s2b)
             ],
             ::std::vec![
-                ::bevy::prelude::IntoSystemConfigs::into_configs(s3a),
-                ::bevy::prelude::IntoSystemConfigs::into_configs(s3b),
-                ::bevy::prelude::IntoSystemConfigs::into_configs(s3c)
+                ::bevy::prelude::IntoScheduleConfigs::into_configs(s3a),
+                ::bevy::prelude::IntoScheduleConfigs::into_configs(s3b),
+                ::bevy::prelude::IntoScheduleConfigs::into_configs(s3c)
             ],
-            ::std::vec![::bevy::prelude::IntoSystemConfigs::into_configs(s4a)],
-            ::std::vec![::bevy::prelude::IntoSystemConfigs::into_configs(s5a)]
+            ::std::vec![::bevy::prelude::IntoScheduleConfigs::into_configs(s4a)],
+            ::std::vec![::bevy::prelude::IntoScheduleConfigs::into_configs(s5a)]
         ]
     }
     .to_string();

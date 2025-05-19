@@ -158,7 +158,7 @@ impl ToTokens for RuntimeStmt<'_> {
             None => quote! { () },
         };
         let system = &self.value.system_path;
-        quote! { let #output_ident = world.run_system_once_with(#parent_output_ident, #system)?; }
+        quote! { let #output_ident = world.run_system_once_with(#system, #parent_output_ident)?; }
             .to_tokens(tokens);
     }
 }

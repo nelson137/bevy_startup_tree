@@ -130,7 +130,10 @@
 use std::fmt::Write;
 
 use bevy_app::{App, Startup};
-use bevy_ecs::schedule::{IntoSystemConfigs, IntoSystemSetConfigs, SystemConfigs};
+use bevy_ecs::{
+    schedule::{IntoScheduleConfigs, ScheduleConfigs},
+    system::ScheduleSystem,
+};
 use rand::distributions::{Alphanumeric, DistString};
 
 mod rng;
@@ -163,14 +166,14 @@ pub trait AddStartupTree {
     fn add_startup_tree<I2, I>(&mut self, startup_tree: I2) -> &mut Self
     where
         I2: IntoIterator<Item = I>,
-        I: IntoIterator<Item = SystemConfigs>;
+        I: IntoIterator<Item = ScheduleConfigs<ScheduleSystem>>;
 }
 
 impl AddStartupTree for App {
     fn add_startup_tree<I2, I>(&mut self, startup_tree: I2) -> &mut Self
     where
         I2: IntoIterator<Item = I>,
-        I: IntoIterator<Item = SystemConfigs>,
+        I: IntoIterator<Item = ScheduleConfigs<ScheduleSystem>>,
     {
         let mut rng = get_rng();
         let namespace = Alphanumeric.sample_string(&mut rng, NAMESPACE_LEN);

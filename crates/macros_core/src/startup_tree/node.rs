@@ -16,7 +16,7 @@ impl ExprNode {
     pub fn as_into_descriptor_call(&self) -> TokenStream2 {
         let receiver = &self.0;
         quote! {
-            ::bevy::prelude::IntoSystemConfigs::into_configs(#receiver)
+            ::bevy::prelude::IntoScheduleConfigs::into_configs(#receiver)
         }
     }
 }
@@ -68,7 +68,7 @@ mod tests {
     fn node_correctly_creates_the_into_descriptor_call() {
         let node = ExprNode::from(syn::Path::from(syn::Ident::new("sys", Span::call_site())));
         let expected_call =
-            quote! { ::bevy::prelude::IntoSystemConfigs::into_configs(sys) }.to_string();
+            quote! { ::bevy::prelude::IntoScheduleConfigs::into_configs(sys) }.to_string();
         let actual_call = node.as_into_descriptor_call().to_string();
         assert_eq!(actual_call, expected_call);
     }

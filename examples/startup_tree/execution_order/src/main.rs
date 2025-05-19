@@ -1,4 +1,8 @@
-use bevy::{core::FrameCount, log::LogPlugin, prelude::*};
+use bevy::{
+    diagnostic::{FrameCount, FrameCountPlugin},
+    log::LogPlugin,
+    prelude::*,
+};
 
 use bevy_startup_tree::{startup_tree, AddStartupTree};
 

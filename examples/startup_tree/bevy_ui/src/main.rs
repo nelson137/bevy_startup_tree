@@ -105,7 +105,7 @@ fn spawn_left_panel_content(
             ));
         })
         .id();
-    commands.entity(q_panel.single()).add_child(panel_content_entity);
+    commands.entity(q_panel.single().unwrap()).add_child(panel_content_entity);
 }
 
 fn spawn_right_panel_content(
@@ -177,7 +177,7 @@ fn spawn_right_panel_content(
         })
         .id();
 
-    commands.entity(q_panel.single()).add_children(&[title_entity, list_entity]);
+    commands.entity(q_panel.single().unwrap()).add_children(&[title_entity, list_entity]);
 }
 
 fn spawn_middle_content(
@@ -291,7 +291,7 @@ fn spawn_middle_content(
         })
         .id();
 
-    commands.entity(q_panel.single()).add_children(&[
+    commands.entity(q_panel.single().unwrap()).add_children(&[
         blue_squares_entity,
         render_order_test_entity,
         logo_entity,
@@ -312,11 +312,11 @@ fn mouse_scroll(
     mut query_list: Query<(&mut ScrollingList, &mut Node, &Children)>,
     query_item: Query<&ComputedNode>,
 ) {
-    let viewport_height = query_list_viewport.single().size().y;
+    let viewport_height = query_list_viewport.single().unwrap().size().y;
     for mouse_wheel_event in mouse_wheel_events.read() {
         for (mut scrolling_list, mut node, children) in &mut query_list {
             let items_height: f32 =
-                children.iter().map(|entity| query_item.get(*entity).unwrap().size().y).sum();
+                children.iter().map(|entity| query_item.get(entity).unwrap().size().y).sum();
             let max_scroll = (items_height - viewport_height).max(0.);
             let dy = match mouse_wheel_event.unit {
                 MouseScrollUnit::Line => mouse_wheel_event.y * 20.,
