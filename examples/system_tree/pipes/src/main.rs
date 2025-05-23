@@ -54,7 +54,7 @@ pub struct Rng(pub SmallRng);
 
 impl Rng {
     fn rand_f32(&mut self) -> f32 {
-        self.gen_range(0.0_f32..10.0).trunc()
+        self.random_range(0.0_f32..10.0).trunc()
     }
 }
 

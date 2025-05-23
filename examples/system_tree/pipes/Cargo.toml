@@ -8,4 +8,4 @@ edition = "2021"
 [dependencies]
 bevy = { version = "0.16", default-features = false, features = ["bevy_log"] }
 bevy_startup_tree = { path = "../../.." }
-rand = { version = "0.8.5", features = ["small_rng"] }
+rand = { workspace = true }

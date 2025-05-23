@@ -88,15 +88,15 @@ fn tokenize_tree() {
                 world: &mut ::bevy::ecs::world::World,
             ) -> Result<(), ::bevy::ecs::system::RunSystemError> {
                 use ::bevy::ecs::system::RunSystemOnce;
-                let __sysout__ccd58l__s1a = world.run_system_once_with(s1a, ())?;
-                let __sysout__dZ0PpD__s1b = world.run_system_once_with(s1b, ())?;
-                let __sysout__6OOTyu__s2a = world.run_system_once_with(s2a, __sysout__dZ0PpD__s1b)?;
-                let __sysout__lLQ3Y5__s3a = world.run_system_once_with(s3a, __sysout__6OOTyu__s2a)?;
-                let __sysout__C0b2AW__s2b = world.run_system_once_with(s2b, __sysout__dZ0PpD__s1b)?;
-                let __sysout__7SXSra__s3b = world.run_system_once_with(s3b, __sysout__C0b2AW__s2b)?;
-                let __sysout__BqyWIc__s3c = world.run_system_once_with(s3c, __sysout__C0b2AW__s2b)?;
-                let __sysout__sWVb0o__s4a = world.run_system_once_with(s4a, __sysout__BqyWIc__s3c)?;
-                let __sysout__GF7MJv__s5a = world.run_system_once_with(s5a, __sysout__sWVb0o__s4a)?;
+                let __sysout__UYXAfB__s1a = world.run_system_once_with(s1a, ())?;
+                let __sysout__22SEUE__s1b = world.run_system_once_with(s1b, ())?;
+                let __sysout__GGEZoH__s2a = world.run_system_once_with(s2a, __sysout__22SEUE__s1b)?;
+                let __sysout__UZRICR__s3a = world.run_system_once_with(s3a, __sysout__GGEZoH__s2a)?;
+                let __sysout__bYIp6C__s2b = world.run_system_once_with(s2b, __sysout__22SEUE__s1b)?;
+                let __sysout__QYW33N__s3b = world.run_system_once_with(s3b, __sysout__bYIp6C__s2b)?;
+                let __sysout__gKtLkT__s3c = world.run_system_once_with(s3c, __sysout__bYIp6C__s2b)?;
+                let __sysout__WDCLNK__s4a = world.run_system_once_with(s4a, __sysout__gKtLkT__s3c)?;
+                let __sysout__PblhyI__s5a = world.run_system_once_with(s5a, __sysout__WDCLNK__s4a)?;
                 Ok(())
             }
             run(world).expect("invalid system params");

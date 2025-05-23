@@ -134,7 +134,7 @@ use bevy_ecs::{
     schedule::{IntoScheduleConfigs, ScheduleConfigs},
     system::ScheduleSystem,
 };
-use rand::distributions::{Alphanumeric, DistString};
+use rand::distr::{Alphanumeric, SampleString};
 
 mod rng;
 mod schedule;

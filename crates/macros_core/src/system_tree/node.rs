@@ -6,7 +6,7 @@ use std::{
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{quote, ToTokens};
 use rand::{
-    distributions::Alphanumeric,
+    distr::Alphanumeric,
     rngs::{SmallRng, ThreadRng},
     Rng, SeedableRng,
 };
@@ -19,7 +19,7 @@ use syn::{
 
 thread_local! {
     pub static NODE_RNG: NodeRng =
-        NodeRng(RefCell::new(SmallRng::from_rng(ThreadRng::default()).unwrap()));
+        NodeRng(RefCell::new(SmallRng::from_rng(&mut ThreadRng::default())));
 }
 
 pub struct NodeRng(RefCell<SmallRng>);
@@ -47,9 +47,9 @@ mod node_rng_tests {
     #[test]
     fn reseed_works() {
         reseed();
-        let a = NODE_RNG.with(|rng| rng.get().gen::<u32>());
+        let a = NODE_RNG.with(|rng| rng.get().random::<u32>());
         reseed();
-        let b = NODE_RNG.with(|rng| rng.get().gen::<u32>());
+        let b = NODE_RNG.with(|rng| rng.get().random::<u32>());
         assert_eq!(a, b);
     }
 }

@@ -14,13 +14,16 @@ exclude = ["examples/*"]
 [workspace]
 members = ["crates/*", "examples/startup_tree/*", "examples/system_tree/*"]
 
+[workspace.dependencies]
+rand = "0.9"
+
 [dependencies]
 bevy_app = "0.16"
 bevy_ecs = "0.16"
 bevy_startup_tree_macros = { version = "0.7.0", path = "./crates/macros" }
-itertools = "0.13"
-rand = "0.8.5"
+itertools = "0.14"
+rand = { workspace = true }
 
 [dev-dependencies]
 bevy = { version = "0.16", default-features = false }
-delegate = "0.12"
+delegate = "0.13"
