@@ -1085,7 +1085,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_startup_tree"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "bevy",
  "bevy_app",
@@ -1098,7 +1098,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_startup_tree_macros"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "bevy_startup_tree_macros_core",
  "quote",
@@ -1107,7 +1107,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_startup_tree_macros_core"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "bevy_startup_tree_test_utils",
  "proc-macro2",
@@ -1118,7 +1118,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_startup_tree_test_utils"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "syn",
 ]
@@ -1273,7 +1273,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_ui_example"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "bevy",
  "bevy_startup_tree",
@@ -1989,7 +1989,7 @@ dependencies = [
 
 [[package]]
 name = "execution_order_example"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "bevy",
  "bevy_startup_tree",
@@ -3942,7 +3942,7 @@ dependencies = [
 
 [[package]]
 name = "system_tree_pipes_example"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "bevy",
  "bevy_startup_tree",
