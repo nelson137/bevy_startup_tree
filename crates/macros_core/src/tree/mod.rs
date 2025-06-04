@@ -1,6 +1,5 @@
 #[cfg(debug_assertions)]
-use std::fmt;
-use std::ops::{Add, AddAssign};
+use std::{fmt, ops};
 
 use syn::{
     parse::{Parse, ParseStream},
@@ -177,6 +176,7 @@ struct NodeDisplay<'tree, V> {
     depth: TreeDepth,
 }
 
+#[cfg(debug_assertions)]
 impl<'tree, V> NodeDisplay<'tree, V> {
     fn new(node: &'tree Node<V>, depth: TreeDepth) -> Self {
         Self { node, depth }
@@ -208,7 +208,7 @@ impl<V: fmt::Display> fmt::Display for NodeDisplay<'_, V> {
 struct TreeDepth(u32);
 
 #[cfg(debug_assertions)]
-impl Add<u32> for TreeDepth {
+impl ops::Add<u32> for TreeDepth {
     type Output = Self;
 
     fn add(self, rhs: u32) -> Self::Output {
@@ -217,7 +217,7 @@ impl Add<u32> for TreeDepth {
 }
 
 #[cfg(debug_assertions)]
-impl AddAssign<u32> for TreeDepth {
+impl ops::AddAssign<u32> for TreeDepth {
     fn add_assign(&mut self, rhs: u32) {
         self.0.add_assign(rhs);
     }
