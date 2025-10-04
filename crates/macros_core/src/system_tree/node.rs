@@ -25,7 +25,7 @@ thread_local! {
 pub struct NodeRng(RefCell<SmallRng>);
 
 impl NodeRng {
-    pub fn get(&self) -> RefMut<SmallRng> {
+    pub fn get(&self) -> RefMut<'_, SmallRng> {
         self.0.borrow_mut()
     }
 
@@ -72,7 +72,7 @@ impl Hash for SystemNode {
 
 impl PartialOrd for SystemNode {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.system_output_ident.cmp(&other.system_output_ident))
+        Some(self.cmp(other))
     }
 }
 

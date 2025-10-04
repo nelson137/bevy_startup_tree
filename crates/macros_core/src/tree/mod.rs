@@ -130,11 +130,11 @@ mod tree_tests {
 
 #[cfg(debug_assertions)]
 impl<V> Tree<V> {
-    pub fn display(&self) -> TreeDisplay<V> {
+    pub fn display(&self) -> TreeDisplay<'_, V> {
         self.display_with_depth(Default::default())
     }
 
-    fn display_with_depth(&self, depth: TreeDepth) -> TreeDisplay<V> {
+    fn display_with_depth(&self, depth: TreeDepth) -> TreeDisplay<'_, V> {
         TreeDisplay { tree: self, depth }
     }
 }
