@@ -236,7 +236,8 @@ mod tests {
             .hierarchy()
             .graph()
             .nodes()
-            .filter_map(|id| startup_graph.get_set_at(id))
+            .filter_map(|id| id.as_set())
+            .filter_map(|key| startup_graph.system_sets.get(key))
             .map(|set| format!("{set:#?}"))
             .filter(|label| label.starts_with("__startup_tree"))
     }
