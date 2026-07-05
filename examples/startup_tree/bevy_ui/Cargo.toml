@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 bevy = "0.17"
-bevy_startup_tree = { path = "../../.." }
+bevy_startup_tree = { version = "*", path = "../../.." }
