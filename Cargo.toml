@@ -18,12 +18,12 @@ members = ["crates/*", "examples/startup_tree/*", "examples/system_tree/*"]
 rand = "0.9"
 
 [dependencies]
-bevy_app = "0.18"
-bevy_ecs = "0.18"
+bevy_app = "0.19"
+bevy_ecs = "0.19"
 bevy_startup_tree_macros = { version = "0.10.0", path = "./crates/macros" }
 itertools = "0.14"
 rand = { workspace = true }
 
 [dev-dependencies]
-bevy = { version = "0.18", default-features = false, features = ["bevy_log"] }
+bevy = { version = "0.19", default-features = false, features = ["bevy_log"] }
 delegate = "0.13"

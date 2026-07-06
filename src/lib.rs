@@ -354,7 +354,7 @@ mod tests {
 
             let mut app = App::new();
             app.add_plugins(TaskPoolPlugin::default());
-            app.insert_non_send_resource(TestEventData(Vec::with_capacity(11)));
+            app.insert_non_send(TestEventData(Vec::with_capacity(11)));
             app.add_systems(PreStartup, begin);
             app.add_startup_tree(startup_tree! {
                 sys_1_a => {
@@ -373,7 +373,7 @@ mod tests {
             app.update();
 
             assert_eq!(
-                app.world().non_send_resource::<TestEventData>().0,
+                app.world().non_send::<TestEventData>().0,
                 &[
                     TestEvent::Begin,
                     TestEvent::One,

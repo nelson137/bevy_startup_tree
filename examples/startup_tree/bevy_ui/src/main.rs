@@ -97,8 +97,8 @@ fn spawn_left_panel_content(
                 Text::new("Text Example"),
                 TextColor(Color::WHITE),
                 TextFont {
-                    font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                    font_size: 30.0,
+                    font: asset_server.load("fonts/FiraSans-Bold.ttf").into(),
+                    font_size: FontSize::Px(30.0),
                     ..default()
                 },
                 Node { margin: UiRect::all(Val::Px(5.0)), ..default() },
@@ -119,8 +119,8 @@ fn spawn_right_panel_content(
             Text::new("Scrolling list"),
             TextColor(Color::WHITE),
             TextFont {
-                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                font_size: 25.,
+                font: asset_server.load("fonts/FiraSans-Bold.ttf").into(),
+                font_size: FontSize::Px(25.0),
                 ..default()
             },
             Node {
@@ -160,8 +160,8 @@ fn spawn_right_panel_content(
                             Text::new(format!("Item {i}")),
                             TextColor(Color::WHITE),
                             TextFont {
-                                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                                font_size: 20.,
+                                font: asset_server.load("fonts/FiraSans-Bold.ttf").into(),
+                                font_size: FontSize::Px(20.),
                                 ..default()
                             },
                             Node {
